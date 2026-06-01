@@ -36,7 +36,7 @@ jobs:
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: voltapp-fpfsbdcje3ewh2fa
+          app-name: VoltApp
           package: .
 
   build-electron:
