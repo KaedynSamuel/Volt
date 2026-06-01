@@ -38,6 +38,7 @@ jobs:
         with:
           app-name: VoltApp
           package: .
+          clean: true
 
   build-electron:
     name: Build Windows Desktop App
