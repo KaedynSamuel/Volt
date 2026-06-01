@@ -1,0 +1,8 @@
+{
+  "name": "volt-desktop",
+  "version": "1.0.0",
+  "description": "Volt — The Intelligent Business Dashboard",
+  "main": "main.js",
+  "author": "Volt",
+  "private": true
+}
