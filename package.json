@@ -11,9 +11,9 @@
     "lint": "eslint .",
     "electron": "electron .",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "npm run build && electron-builder --mac",
-    "build:all": "npm run build && electron-builder --win --mac"
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:all": "electron-builder --win --mac"
   },
   "build": {
     "appId": "com.volt.desktop",
@@ -25,24 +25,15 @@
     },
     "files": [
       "electron/**/*",
-      "assets/**/*",
-      ".next/**/*",
-      "public/**/*",
-      "node_modules/**/*",
-      "package.json",
-      "server.js",
-      "next.config.mjs"
+      "assets/**/*"
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
-      "icon": "assets/icon.ico",
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
@@ -51,28 +42,20 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Volt",
-      "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico",
-      "installerHeaderIcon": "assets/icon.ico",
       "deleteAppDataOnUninstall": false
     },
     "mac": {
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
+          "arch": ["x64", "arm64"]
         }
       ],
-      "icon": "assets/icon.icns",
       "category": "public.app-category.productivity",
       "darkModeSupport": true
     },
     "dmg": {
-      "title": "Volt Installer",
-      "icon": "assets/icon.icns"
+      "title": "Volt Installer"
     }
   },
   "dependencies": {
