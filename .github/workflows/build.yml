@@ -5,6 +5,9 @@ on:
     branches: [master]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
 
   deploy-azure:
@@ -28,6 +31,19 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: Remove dev dependencies before deploy
+        run: npm prune --production --legacy-peer-deps
+
+      - name: Zip for deployment
+        run: |
+          zip -r deploy.zip . \
+            --exclude "*.git*" \
+            --exclude "electron/*" \
+            --exclude "assets/*" \
+            --exclude "dist/*" \
+            --exclude "*.md" \
+            --exclude "node_modules/.cache/*"
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -37,8 +53,7 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: VoltApp
-          package: .
-          clean: true
+          package: deploy.zip
 
   build-electron:
     name: Build Windows Desktop App
