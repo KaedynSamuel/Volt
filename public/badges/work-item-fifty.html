@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:260px;height:260px;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.b{width:240px;height:240px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:46px;background:radial-gradient(ellipse at 40% 25%,#041820 0%,#020e12 60%,#020202 100%);border:1.5px solid #06b6d466;box-shadow:0 0 0 1px #000,0 0 40px rgba(6,182,212,0.2),0 0 80px rgba(6,182,212,0.08),inset 0 1px 0 rgba(6,182,212,0.18),inset 0 0 80px rgba(6,182,212,0.04);overflow:hidden;}
+.hx{position:absolute;inset:0;opacity:0.035;background-image:repeating-linear-gradient(0deg,#06b6d4 0,transparent 1px,transparent 18px),repeating-linear-gradient(60deg,#06b6d4 0,transparent 1px,transparent 18px),repeating-linear-gradient(120deg,#06b6d4 0,transparent 1px,transparent 18px);}
+.cone{position:absolute;top:0;left:50%;transform:translateX(-50%);width:0;height:0;border-left:48px solid transparent;border-right:48px solid transparent;border-top:130px solid rgba(6,182,212,0.06);filter:blur(6px);}
+.cg{position:absolute;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(6,182,212,0.09) 0%,transparent 65%);top:50%;left:50%;transform:translate(-50%,-58%);}
+.orb{position:absolute;width:158px;height:158px;border-radius:50%;border:1px solid rgba(6,182,212,0.12);top:50%;left:50%;transform:translate(-50%,-55%);}
+.orb::before{content:'';position:absolute;width:7px;height:7px;border-radius:50%;background:#06b6d4;top:-3.5px;left:50%;transform:translateX(-50%);box-shadow:0 0 10px #06b6d4,0 0 20px #06b6d488;animation:orb 4s linear infinite;}
+@keyframes orb{from{transform:translateX(-50%) rotate(0deg) translateX(79px) rotate(0deg);}to{transform:translateX(-50%) rotate(360deg) translateX(79px) rotate(-360deg);}}
+.r1{position:absolute;border-radius:50%;border:1.5px solid rgba(6,182,212,0.35);width:68px;height:15px;bottom:24px;left:50%;transform:translateX(-50%);}
+.r2{position:absolute;border-radius:50%;border:1px solid rgba(6,182,212,0.18);width:108px;height:25px;bottom:18px;left:50%;transform:translateX(-50%);}
+.r3{position:absolute;border-radius:50%;border:1px solid rgba(6,182,212,0.07);width:152px;height:35px;bottom:12px;left:50%;transform:translateX(-50%);}
+.pf{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);width:62px;height:7px;border-radius:50%;background:rgba(6,182,212,0.18);filter:blur(5px);}
+@keyframes fall{0%{transform:translateY(-10px) rotate(0deg);opacity:0;}15%{opacity:1;}85%{opacity:0.7;}100%{transform:translateY(16px) rotate(270deg);opacity:0;}}
+@keyframes spk{0%,100%{opacity:0;transform:scale(0.5) rotate(0deg);}50%{opacity:1;transform:scale(1.1) rotate(45deg);}}
+.pill{position:absolute;top:13px;left:50%;transform:translateX(-50%);background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.4);border-radius:20px;padding:2px 9px;font-family:"Courier New",monospace;font-size:7px;font-weight:700;color:#06b6d4;letter-spacing:0.22em;text-transform:uppercase;z-index:3;white-space:nowrap;}
+.icon{position:relative;z-index:2;width:108px;height:108px;margin-bottom:2px;filter:drop-shadow(0 0 8px #06b6d4) drop-shadow(0 0 18px #06b6d4cc) drop-shadow(0 0 40px #06b6d480) drop-shadow(0 0 70px #06b6d444);}
+.icon svg{width:100%;height:100%;}
+.tb{position:relative;z-index:2;text-align:center;}
+.bn{font-family:"Courier New",monospace;font-size:9px;font-weight:700;color:rgba(6,182,212,0.4);letter-spacing:0.28em;text-transform:uppercase;margin-bottom:1px;}
+.bname{font-family:"Courier New",monospace;font-size:12.5px;font-weight:700;color:#06b6d4;letter-spacing:0.14em;text-transform:uppercase;text-shadow:0 0 10px #06b6d4,0 0 22px #06b6d4cc,0 0 44px #06b6d480;}
+.bdesc{font-family:"Courier New",monospace;font-size:7px;color:rgba(6,182,212,0.38);letter-spacing:0.1em;margin-top:2px;text-transform:uppercase;}
+.div{width:46px;height:1px;background:linear-gradient(90deg,transparent,rgba(6,182,212,0.45),transparent);margin:3px auto;}
+.c{position:absolute;width:17px;height:17px;}
+.ctl{top:10px;left:10px;border-top:1.5px solid #06b6d499;border-left:1.5px solid #06b6d499;}
+.ctr{top:10px;right:10px;border-top:1.5px solid #06b6d499;border-right:1.5px solid #06b6d499;}
+.cbl{bottom:10px;left:10px;border-bottom:1.5px solid #06b6d499;border-left:1.5px solid #06b6d499;}
+.cbr{bottom:10px;right:10px;border-bottom:1.5px solid #06b6d499;border-right:1.5px solid #06b6d499;}
+.cd{position:absolute;width:4px;height:4px;border-radius:50%;background:#06b6d4bb;box-shadow:0 0 8px #06b6d4;}
+.cdtl{top:8px;left:8px;}.cdtr{top:8px;right:8px;}.cdbl{bottom:8px;left:8px;}.cdbr{bottom:8px;right:8px;}
+.sd{position:absolute;width:3px;height:3px;border-radius:50%;background:rgba(6,182,212,0.4);box-shadow:0 0 5px #06b6d4;}
+.sdl{top:50%;left:8px;transform:translateY(-50%);}.sdr{top:50%;right:8px;transform:translateY(-50%);}
+.tl{position:absolute;top:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,rgba(6,182,212,0.5),transparent);}
+.bl{position:absolute;bottom:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,rgba(6,182,212,0.35),transparent);}
+</style></head><body>
+<div class="b">
+<div class="hx"></div><div class="cone"></div><div class="cg"></div><div class="orb"></div>
+<div class="tl"></div><div class="bl"></div>
+<div class="c ctl"></div><div class="c ctr"></div><div class="c cbl"></div><div class="c cbr"></div>
+<div class="cd cdtl"></div><div class="cd cdtr"></div><div class="cd cdbl"></div><div class="cd cdbr"></div>
+<div class="sd sdl"></div><div class="sd sdr"></div>
+<div class="pill">★★ advanced ★★</div>
+<div class="r1"></div><div class="r2"></div><div class="r3"></div><div class="pf"></div>
+<div style="position:absolute;width:4px;height:4px;background:#06b6d4;top:42px;left:22px;border-radius:50%;opacity:0;animation:fall 2.0s linear 0s infinite;"></div>
+<div style="position:absolute;width:3px;height:7px;background:#0891b2;top:52px;left:18px;border-radius:1px;opacity:0;animation:fall 2.2s linear 0.5s infinite;"></div>
+<div style="position:absolute;width:6px;height:3px;background:#22d3ee;top:28px;left:42px;border-radius:1px;opacity:0;animation:fall 2.4s linear 1.0s infinite;"></div>
+<div style="position:absolute;width:4px;height:4px;background:#67e8f9;top:35px;left:30px;border-radius:50%;opacity:0;animation:fall 2.5s linear 1.5s infinite;"></div>
+<div style="position:absolute;width:3px;height:6px;background:#06b6d4;top:22px;left:55px;border-radius:1px;opacity:0;animation:fall 2.7s linear 0.7s infinite;"></div>
+<div style="position:absolute;width:5px;height:3px;background:#0891b2;top:65px;left:28px;border-radius:1px;opacity:0;animation:fall 2.9s linear 1.2s infinite;"></div>
+<div style="position:absolute;width:4px;height:4px;background:#22d3ee;top:30px;left:65px;border-radius:50%;opacity:0;animation:fall 3.1s linear 0.3s infinite;"></div>
+<div style="position:absolute;width:3px;height:3px;background:#67e8f9;top:48px;left:72px;border-radius:50%;opacity:0;animation:fall 3.3s linear 1.8s infinite;"></div>
+<div style="position:absolute;width:4px;height:5px;background:#06b6d4;top:20px;left:48px;border-radius:1px;opacity:0;animation:fall 3.4s linear 0.9s infinite;"></div>
+<div style="position:absolute;width:5px;height:4px;background:#0891b2;top:55px;left:60px;border-radius:1px;opacity:0;animation:fall 3.6s linear 1.4s infinite;"></div>
+<div style="position:absolute;top:36px;left:36px;animation:spk 2s ease-in-out 0s infinite;"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="#06b6d4" opacity="0.8"/></svg></div>
+<div style="position:absolute;top:44px;left:32px;animation:spk 2s ease-in-out 0.8s infinite;"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="#06b6d4" opacity="0.8"/></svg></div>
+<div style="position:absolute;top:72px;left:20px;animation:spk 2s ease-in-out 1.4s infinite;"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="#06b6d4" opacity="0.8"/></svg></div>
+<div style="position:absolute;top:62px;left:22px;animation:spk 2s ease-in-out 0.5s infinite;"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="#06b6d4" opacity="0.8"/></svg></div>
+<div style="position:absolute;top:26px;left:114px;animation:spk 2s ease-in-out 1.8s infinite;"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="#06b6d4" opacity="0.8"/></svg></div>
+<div style="position:absolute;top:38px;left:218px;animation:spk 2s ease-in-out 1.1s infinite;"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="#06b6d4" opacity="0.8"/></svg></div>
+<div style="position:absolute;top:66px;left:218px;animation:spk 2s ease-in-out 0.3s infinite;"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="#06b6d4" opacity="0.8"/></svg></div>
+
+<div class="icon"><svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M50 18 L52.5 26 L62 26 L54.5 31.5 L57 40 L50 35 L43 40 L45.5 31.5 L38 26 L47.5 26Z" fill="#06b6d4"/><rect x="34" y="56" width="32" height="16" rx="4" fill="none" stroke="#06b6d4" stroke-width="2"/><line x1="50" y1="42" x2="50" y2="56" stroke="#06b6d4" stroke-width="2" stroke-linecap="round"/></svg></div>
+<div class="tb">
+<div class="bn">— 23 —</div>
+<div class="bname">Volt Grinder</div>
+<div class="div"></div>
+<div class="bdesc">Complete 50 total work items</div>
+</div></div></body></html>

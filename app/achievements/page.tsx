@@ -28,6 +28,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { getStoredSession } from "@/lib/auth"
+import { VoltLevelUp, VoltTierUp } from "@/components/ui/volt-levelup"
 
 type AchievementTask = {
   id: string
@@ -540,6 +541,7 @@ function BadgeImage({
 }) {
   const Icon = badge.fallback
   const [failed, setFailed] = useState(false)
+  const animatedSrc = `/badges/animated/${badge.id}.html`
 
   const sizeClasses =
     size === "large"
@@ -548,12 +550,12 @@ function BadgeImage({
         ? "h-12 w-12 rounded-2xl"
         : "h-20 w-20 rounded-3xl"
 
-  const imageClasses =
-    size === "large" ? "h-20 w-20" : size === "small" ? "h-9 w-9" : "h-16 w-16"
+  const iframeSize = size === "large" ? 96 : size === "small" ? 48 : 80
+  const iconSize = size === "large" ? "h-20 w-20" : size === "small" ? "h-9 w-9" : "h-16 w-16"
 
   return (
     <div
-      className={`relative flex shrink-0 items-center justify-center border ${
+      className={`relative flex shrink-0 items-center justify-center border overflow-hidden ${
         badge.unlocked
           ? "border-white/15 bg-white/10"
           : "border-white/10 bg-white/[0.035]"
@@ -563,17 +565,28 @@ function BadgeImage({
       }}
     >
       {!failed ? (
-        <img
-          src={badge.image}
-          alt={badge.name}
+        <iframe
+          src={animatedSrc}
+          title={badge.name}
+          scrolling="no"
+          style={{
+            width: 260,
+            height: 260,
+            border: "none",
+            pointerEvents: "none",
+            transform: `scale(${iframeSize / 260})`,
+            transformOrigin: "center center",
+            marginTop: -(260 - iframeSize) / 2,
+            marginBottom: -(260 - iframeSize) / 2,
+            marginLeft: -(260 - iframeSize) / 2,
+            marginRight: -(260 - iframeSize) / 2,
+            filter: badge.unlocked ? undefined : "grayscale(1) brightness(0.35)",
+          }}
           onError={() => setFailed(true)}
-          className={`object-contain ${imageClasses} ${
-            badge.unlocked ? "" : "grayscale opacity-35"
-          }`}
         />
       ) : (
         <Icon
-          className={badge.unlocked ? imageClasses : `${imageClasses} opacity-35`}
+          className={badge.unlocked ? iconSize : `${iconSize} opacity-35`}
           style={{ color: badge.unlocked ? tierColor : "rgba(255,255,255,.5)" }}
         />
       )}
@@ -617,8 +630,10 @@ export default function AchievementsPage() {
       recentAchievements: [],
       lastUpdatedAt: new Date().toISOString(),
     })
-  const [levelUpData, setLevelUpData] = useState<{ level: number; tierName: string } | null>(null)
+  const [levelUpData, setLevelUpData] = useState<{ level: number; tierName: string; tierColor: string } | null>(null)
+  const [tierUpData, setTierUpData] = useState<{ fromTier: string; toTier: string; toColor: string } | null>(null)
   const prevLevelRef = React.useRef<number | null>(null)
+  const prevTierRef = React.useRef<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -667,16 +682,29 @@ export default function AchievementsPage() {
     }
   }, [mounted, progressStorageKey])
 
-  // Detect level-up and trigger animation
+  // Detect level-up and tier-up and trigger animations
   useEffect(() => {
     if (!mounted) return
     const rank = getAchievementRank(storedProgress.totalXp)
     const currentLevel = rank.globalLevel
+    const currentTier = rank.tier.name
+
     if (prevLevelRef.current !== null && currentLevel > prevLevelRef.current) {
-      setLevelUpData({ level: currentLevel, tierName: rank.tier.name })
-      setTimeout(() => setLevelUpData(null), 4500)
+      // Tier changed? Show tier up first, then level up
+      if (prevTierRef.current !== null && currentTier !== prevTierRef.current) {
+        setTierUpData({ fromTier: prevTierRef.current, toTier: currentTier, toColor: rank.tier.color })
+        setTimeout(() => {
+          setTierUpData(null)
+          setLevelUpData({ level: currentLevel, tierName: currentTier, tierColor: rank.tier.color })
+          setTimeout(() => setLevelUpData(null), 5000)
+        }, 6000)
+      } else {
+        setLevelUpData({ level: currentLevel, tierName: currentTier, tierColor: rank.tier.color })
+        setTimeout(() => setLevelUpData(null), 5000)
+      }
     }
     prevLevelRef.current = currentLevel
+    prevTierRef.current = currentTier
   }, [mounted, storedProgress.totalXp])
 
   useEffect(() => {
@@ -845,35 +873,21 @@ export default function AchievementsPage() {
         ]}
       />
       {/* Level-up animation overlay */}
+      {tierUpData && (
+        <VoltTierUp
+          fromTier={tierUpData.fromTier}
+          toTier={tierUpData.toTier}
+          toColor={tierUpData.toColor}
+          onDone={() => setTierUpData(null)}
+        />
+      )}
       {levelUpData && (
-        <div className="pointer-events-none fixed inset-0 z-[200] flex items-center justify-center">
-          <div className="volt-levelup-overlay absolute inset-0 bg-background/60 backdrop-blur-sm" />
-          <div className="volt-levelup-card relative flex flex-col items-center gap-4 rounded-3xl border-2 border-primary/40 bg-gradient-to-b from-primary/20 via-accent/10 to-background/95 px-10 py-10 shadow-2xl shadow-primary/30 text-center">
-            {/* Sparkle burst */}
-            <div className="volt-levelup-burst absolute inset-0 rounded-3xl" />
-            <div className="h-24 w-24 overflow-hidden rounded-3xl border-2 border-primary/40 shadow-xl volt-levelup-bounce">
-              <img
-                src="/volty/ChatGPT_Image_May_27__2026__04_08_21_AM__10_-removebg-preview.png"
-                alt="Volty"
-                className="h-full w-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).src = "/volty/volty-1.png" }}
-              />
-            </div>
-            <div className="volt-levelup-text">
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-primary">Level Up!</p>
-              <p className="mt-1 text-5xl font-black tracking-tight text-foreground">
-                Level {levelUpData.level}
-              </p>
-              <p className="mt-1 text-base font-semibold text-muted-foreground">
-                {levelUpData.tierName} Tier
-              </p>
-            </div>
-            <div className="flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-bold text-primary">Keep it up — you're on fire!</span>
-            </div>
-          </div>
-        </div>
+        <VoltLevelUp
+          level={levelUpData.level}
+          tierName={levelUpData.tierName}
+          tierColor={levelUpData.tierColor}
+          onDone={() => setLevelUpData(null)}
+        />
       )}
       <div className="space-y-7 text-foreground">
         <div className="pointer-events-none fixed inset-0 -z-10 opacity-70">

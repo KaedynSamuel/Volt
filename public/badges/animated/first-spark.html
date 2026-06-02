@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0;padding:0;box-sizing:border-box; }
+  body {
+    width:300px;height:300px;background:#000;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .badge {
+    width:260px;height:260px;position:relative;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border-radius:52px;
+    background:radial-gradient(ellipse at 40% 25%, #0a1a0a 0%, #050f05 60%, #020202 100%);
+    border:1px solid rgba(34,197,94,0.45);
+    box-shadow:0 0 0 1px rgba(0,0,0,0.9),0 0 40px rgba(34,197,94,0.2),0 0 90px rgba(34,197,94,0.08),inset 0 1px 0 rgba(34,197,94,0.18),inset 0 0 80px rgba(34,197,94,0.04);
+    overflow:hidden;
+  }
+  .hex { position:absolute;inset:0;opacity:0.035;
+    background-image:repeating-linear-gradient(0deg,rgba(34,197,94,1) 0,transparent 1px,transparent 18px),repeating-linear-gradient(60deg,rgba(34,197,94,1) 0,transparent 1px,transparent 18px),repeating-linear-gradient(120deg,rgba(34,197,94,1) 0,transparent 1px,transparent 18px); }
+  .cone { position:absolute;top:0;left:50%;transform:translateX(-50%);width:0;height:0;
+    border-left:50px solid transparent;border-right:50px solid transparent;
+    border-top:150px solid rgba(34,197,94,0.07);filter:blur(6px); }
+  .glow-orb { position:absolute;width:160px;height:160px;border-radius:50%;
+    background:radial-gradient(circle,rgba(34,197,94,0.1) 0%,transparent 65%);
+    top:50%;left:50%;transform:translate(-50%,-58%); }
+  .orbit { position:absolute;width:158px;height:158px;border-radius:50%;
+    border:1px solid rgba(34,197,94,0.12);top:50%;left:50%;transform:translate(-50%,-55%);
+    animation:spin 8s linear infinite; }
+  .orbit-dot { position:absolute;width:5px;height:5px;border-radius:50%;
+    background:rgba(34,197,94,0.8);top:-2.5px;left:50%;transform:translateX(-50%);
+    box-shadow:0 0 8px rgba(34,197,94,1); }
+  @keyframes spin { from{transform:translate(-50%,-55%) rotate(0deg)} to{transform:translate(-50%,-55%) rotate(360deg)} }
+  .ring { position:absolute;border-radius:50%;bottom:26px;left:50%;transform:translateX(-50%); }
+  .r1 { width:65px;height:14px;border:1.5px solid rgba(34,197,94,0.45); }
+  .r2 { width:105px;height:24px;border:1px solid rgba(34,197,94,0.22); }
+  .r3 { width:150px;height:34px;border:1px solid rgba(34,197,94,0.1); }
+  .rg { position:absolute;bottom:26px;left:50%;transform:translateX(-50%);width:65px;height:7px;border-radius:50%;background:rgba(34,197,94,0.18);filter:blur(4px); }
+  .conf { position:absolute;opacity:0;animation:fall linear infinite; }
+  @keyframes fall { 0%{transform:translateY(-8px) rotate(0deg);opacity:0} 15%{opacity:1} 85%{opacity:0.7} 100%{transform:translateY(14px) rotate(240deg);opacity:0} }
+  .c1{width:4px;height:4px;background:#22c55e;top:22px;left:44px;border-radius:1px;animation-duration:2.2s;animation-delay:0s;}
+  .c2{width:3px;height:6px;background:#22c55e;top:18px;right:52px;border-radius:1px;animation-duration:2.6s;animation-delay:0.5s;}
+  .c3{width:5px;height:3px;background:#22c55e;top:40px;left:28px;border-radius:1px;animation-duration:2s;animation-delay:1s;}
+  .c4{width:3px;height:5px;background:#22c55e;top:28px;right:36px;border-radius:50%;animation-duration:2.4s;animation-delay:1.5s;}
+  .c5{width:4px;height:4px;background:#22c55e;top:52px;left:55px;border-radius:1px;animation-duration:2.8s;animation-delay:0.7s;}
+  .c6{width:3px;height:3px;background:#22c55e;top:26px;left:108px;border-radius:50%;animation-duration:2.1s;animation-delay:1.9s;}
+  .spark { position:absolute;animation:twinkle 2s ease-in-out infinite; }
+  @keyframes twinkle { 0%,100%{opacity:0.1;transform:scale(0.6) rotate(0deg)} 50%{opacity:1;transform:scale(1.1) rotate(45deg)} }
+  .sp1{top:36px;left:34px;animation-delay:0s;}
+  .sp2{top:30px;right:38px;animation-delay:0.8s;}
+  .sp3{top:68px;left:22px;animation-delay:1.3s;}
+  .sp4{top:60px;right:24px;animation-delay:0.5s;}
+  .sp5{top:22px;left:116px;animation-delay:1.8s;}
+  .icon-w { position:relative;z-index:2;width:115px;height:115px;margin-bottom:5px;
+    filter:drop-shadow(0 0 10px rgba(34,197,94,1)) drop-shadow(0 0 24px rgba(34,197,94,0.65)) drop-shadow(0 0 50px rgba(34,197,94,0.3)) drop-shadow(0 0 90px rgba(34,197,94,0.12)); }
+  .icon-w svg { width:100%;height:100%; }
+  .tier-pill { position:absolute;top:17px;left:50%;transform:translateX(-50%);
+    background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.38);
+    border-radius:20px;padding:2px 10px;z-index:3;
+    font-family:'Courier New',monospace;font-size:7px;font-weight:700;
+    color:rgba(34,197,94,0.85);letter-spacing:0.25em;text-transform:uppercase;white-space:nowrap; }
+  .txt { position:relative;z-index:2;text-align:center; }
+  .num { font-family:'Courier New',monospace;font-size:9px;font-weight:700;
+    color:rgba(34,197,94,0.4);letter-spacing:0.3em;text-transform:uppercase;margin-bottom:2px; }
+  .name { font-family:'Courier New',monospace;font-size:14px;font-weight:700;
+    color:#22c55e;letter-spacing:0.15em;text-transform:uppercase;
+    text-shadow:0 0 10px rgba(34,197,94,1),0 0 22px rgba(34,197,94,0.65),0 0 40px rgba(34,197,94,0.35); }
+  .div { width:44px;height:1px;background:linear-gradient(90deg,transparent,rgba(34,197,94,0.45),transparent);margin:4px auto; }
+  .desc { font-family:'Courier New',monospace;font-size:7.5px;
+    color:rgba(34,197,94,0.38);letter-spacing:0.1em;text-transform:uppercase; }
+  .corner { position:absolute;width:18px;height:18px; }
+  .ctl{top:12px;left:12px;border-top:1.5px solid rgba(34,197,94,0.65);border-left:1.5px solid rgba(34,197,94,0.65);}
+  .ctr{top:12px;right:12px;border-top:1.5px solid rgba(34,197,94,0.65);border-right:1.5px solid rgba(34,197,94,0.65);}
+  .cbl{bottom:12px;left:12px;border-bottom:1.5px solid rgba(34,197,94,0.65);border-left:1.5px solid rgba(34,197,94,0.65);}
+  .cbr{bottom:12px;right:12px;border-bottom:1.5px solid rgba(34,197,94,0.65);border-right:1.5px solid rgba(34,197,94,0.65);}
+  .cdot { position:absolute;width:4px;height:4px;border-radius:50%;
+    background:rgba(34,197,94,0.7);box-shadow:0 0 6px rgba(34,197,94,1); }
+  .cdtl{top:10px;left:10px;} .cdtr{top:10px;right:10px;} .cdbl{bottom:10px;left:10px;} .cdbr{bottom:10px;right:10px;}
+  .sdot { position:absolute;width:3px;height:3px;border-radius:50%;
+    background:rgba(34,197,94,0.35);box-shadow:0 0 5px rgba(34,197,94,0.7); }
+  .sl{top:50%;left:10px;transform:translateY(-50%);} .sr{top:50%;right:10px;transform:translateY(-50%);}
+  .topline { position:absolute;top:0;left:20%;right:20%;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(34,197,94,0.5),transparent); }
+  .botline { position:absolute;bottom:0;left:20%;right:20%;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(34,197,94,0.3),transparent); }
+</style>
+</head>
+<body>
+<div class="badge">
+  <div class="hex"></div><div class="cone"></div><div class="glow-orb"></div>
+  <div class="orbit"><div class="orbit-dot"></div></div>
+  <div class="corner ctl"></div><div class="corner ctr"></div>
+  <div class="corner cbl"></div><div class="corner cbr"></div>
+  <div class="cdot cdtl"></div><div class="cdot cdtr"></div>
+  <div class="cdot cdbl"></div><div class="cdot cdbr"></div>
+  <div class="sdot sl"></div><div class="sdot sr"></div>
+  <div class="topline"></div><div class="botline"></div>
+  <div class="tier-pill">◈ easy ◈</div>
+  <div class="conf c1"></div><div class="conf c2"></div><div class="conf c3"></div>
+  <div class="conf c4"></div><div class="conf c5"></div><div class="conf c6"></div>
+  <div class="spark sp1"><svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="rgba(34,197,94,0.8)"/></svg></div>
+  <div class="spark sp2"><svg width="7" height="7" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="rgba(34,197,94,0.7)"/></svg></div>
+  <div class="spark sp3"><svg width="6" height="6" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="rgba(34,197,94,0.6)"/></svg></div>
+  <div class="spark sp4"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="rgba(34,197,94,0.7)"/></svg></div>
+  <div class="spark sp5"><svg width="6" height="6" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="rgba(34,197,94,0.5)"/></svg></div>
+  <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="rg"></div>
+  <div class="icon-w">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="ig" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="rgba(34,197,94,1)"/>
+          <stop offset="100%" stop-color="#22c55e"/>
+        </linearGradient>
+      </defs>
+      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="url(#ig)" stroke="none"/>
+    </svg>
+  </div>
+  <div class="txt">
+    <div class="num">— 01 —</div>
+    <div class="name">First Spark</div>
+    <div class="div"></div>
+    <div class="desc">Complete your first task</div>
+  </div>
+</div>
+</body>
+</html>
