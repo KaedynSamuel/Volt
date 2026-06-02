@@ -31,9 +31,6 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: Remove dev dependencies before deploy
-        run: npm prune --production --legacy-peer-deps
-
       - name: Zip for deployment
         run: |
           zip -r deploy.zip . \
@@ -72,8 +69,6 @@ jobs:
 
       - name: Build Electron app
         run: npm run build:win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload exe as artifact
         uses: actions/upload-artifact@v4
