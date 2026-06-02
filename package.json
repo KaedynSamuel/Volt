@@ -31,7 +31,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "electron/assets/apple-icon.ico",
+    "icon": "electron/assets/icon.ico",
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
@@ -40,8 +40,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Volt",
-      "installerIcon": "electron/assets/apple-icon.ico",
-      "uninstallerIcon": "electron/assets/apple-icon.ico",
+"nsis": {
+  "installerIcon": "electron/assets/icon.ico",
+  "uninstallerIcon": "electron/assets/icon.ico",
       "deleteAppDataOnUninstall": false
     },
     "mac": {
@@ -129,4 +130,5 @@
     "typescript": "5.7.3",
     "wait-on": "^7.2.0"
   }
+}
 }
