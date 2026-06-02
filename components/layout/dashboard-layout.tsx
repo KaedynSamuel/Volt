@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { Sidebar } from "./sidebar"
 import { Header } from "./header"
+import { VoltNotificationToasts } from "@/components/ui/volt-notifications"
 import {
   applyCompanyTheme,
   applyVoltTheme,
@@ -120,20 +121,23 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <VoltNotificationToasts />
       <Sidebar
         companyName={company.name}
         dashboardName={company.dashboardName}
         logoUrl={company.logoUrl}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header
-          title={title}
-          subtitle={subtitle}
-          companyName={company.name}
-          userName={session?.fullName || company.ownerName}
-          userEmail={session?.email || company.ownerEmail}
-          userRole={session?.role || "employee"}
-        />
+        <div className="relative">
+          <Header
+            title={title}
+            subtitle={subtitle}
+            companyName={company.name}
+            userName={session?.fullName || company.ownerName}
+            userEmail={session?.email || company.ownerEmail}
+            userRole={session?.role || "employee"}
+          />
+        </div>
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>

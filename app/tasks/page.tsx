@@ -1904,11 +1904,13 @@ export default function TasksPage() {
       }
 
       if (filter === "blocked") {
+        // Blocked tasks: must be in current scope (or status blocked) AND blocked
         return (
           task.status === "blocked" || Boolean(getTaskValue(task, "isBlocked"))
-        );
+        ) && (task.status === activeScope || task.status === "blocked");
       }
 
+      // All other filters: task must be in the current scope tab
       if (task.status !== activeScope) {
         return false;
       }

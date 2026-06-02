@@ -1351,7 +1351,7 @@ export default function TicketsPage() {
         <div data-tour="ticket-status-cards" className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
           {(activeScope === "closed"
             ? (["closed", "past-due"] as Array<"closed" | "past-due">)
-            : (["open", "in-progress", "closed"] as Array<"open" | "in-progress" | "closed">)
+            : (["open", "in-progress"] as Array<"open" | "in-progress">)
           ).map((status) => {
             const config = status === "past-due"
               ? { icon: Flame, label: "Past Due", chip: "border-destructive/30 bg-destructive/10 text-destructive", glow: "shadow-destructive/10" }

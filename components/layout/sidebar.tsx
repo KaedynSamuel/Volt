@@ -7,8 +7,6 @@ import {
   Bell,
   Bot,
   CheckSquare,
-  ChevronLeft,
-  ChevronRight,
   LayoutDashboard,
   LayoutGrid,
   ShieldCheck,
@@ -21,7 +19,6 @@ import {
   Users,
 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { canAccessTeamPage, getStoredSession } from "@/lib/auth"
 
@@ -35,72 +32,21 @@ type NavItem = {
 }
 
 const navItems: NavItem[] = [
-  {
-    title: "My Dashboard",
-    href: "/my-dashboard",
-    icon: UserRound,
-  },
-  {
-    title: "Company Dashboard",
-    href: "/company-overview",
-    icon: LayoutDashboard,
-    adminLikeOnly: true,
-  },
-  {
-    title: "Admin Hub",
-    href: "/admin",
-    icon: ShieldCheck,
-    adminLikeOnly: true,
-  },
-  {
-    title: "Tasks",
-    href: "/tasks",
-    icon: CheckSquare,
-  },
-  {
-    title: "Tickets",
-    href: "/tickets",
-    icon: Ticket,
-  },
-  {
-    title: "Projects",
-    href: "/projects",
-    icon: FolderKanban,
-  },
-  {
-    title: "Team",
-    href: "/team",
-    icon: Users,
-  },
-  {
-    title: "AI Assistant",
-    href: "/assistant",
-    icon: Bot,
-    badge: "AI",
-  },
-  {
-    title: "Apps",
-    href: "/environments",
-    icon: LayoutGrid,
-  },
-  {
-    title: "Achievements",
-    href: "/achievements",
-    icon: Trophy,
-  },
+  { title: "My Dashboard", href: "/my-dashboard", icon: UserRound },
+  { title: "Company Dashboard", href: "/company-overview", icon: LayoutDashboard, adminLikeOnly: true },
+  { title: "Admin Hub", href: "/admin", icon: ShieldCheck, adminLikeOnly: true },
+  { title: "Tasks", href: "/tasks", icon: CheckSquare },
+  { title: "Tickets", href: "/tickets", icon: Ticket },
+  { title: "Projects", href: "/projects", icon: FolderKanban },
+  { title: "Team", href: "/team", icon: Users },
+  { title: "AI Assistant", href: "/assistant", icon: Bot, badge: "AI" },
+  { title: "Apps", href: "/environments", icon: LayoutGrid },
+  { title: "Achievements", href: "/achievements", icon: Trophy },
 ]
 
 const bottomNavItems: NavItem[] = [
-  {
-    title: "Notifications",
-    href: "/notifications",
-    icon: Bell,
-  },
-  {
-    title: "Settings",
-    href: "/settings",
-    icon: Settings,
-  },
+  { title: "Notifications", href: "/notifications", icon: Bell },
+  { title: "Settings", href: "/settings", icon: Settings },
 ]
 
 interface SidebarProps {
@@ -109,13 +55,9 @@ interface SidebarProps {
   logoUrl?: string | null
 }
 
-export function Sidebar({
-  companyName = "Volt",
-  dashboardName = "Volt Dashboards",
-  logoUrl,
-}: SidebarProps) {
+export function Sidebar({ companyName = "Volt", dashboardName = "Volt Dashboards", logoUrl }: SidebarProps) {
   const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
+  const [hovered, setHovered] = useState(false)
   const [role, setRole] = useState<string | null>(null)
 
   useEffect(() => {
@@ -131,42 +73,48 @@ export function Sidebar({
     })
   }, [role])
 
+  const expanded = hovered
+
   return (
     <aside
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={cn(
-        "glass-panel h-screen flex flex-col transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+        "glass-panel h-screen flex flex-col transition-all duration-300 ease-in-out z-50",
+        expanded ? "w-64" : "w-16"
       )}
     >
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border overflow-hidden">
         {logoUrl ? (
           <img
             src={logoUrl}
             alt={`${companyName} logo`}
-            className="h-9 w-9 rounded-lg object-contain bg-background border border-sidebar-border"
+            className="h-9 w-9 shrink-0 rounded-lg object-contain bg-background border border-sidebar-border"
           />
         ) : (
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent glow">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent glow">
             <Sparkles className="h-5 w-5 text-primary-foreground" />
           </div>
         )}
 
-        {!collapsed && (
-          <div className="flex flex-col min-w-0">
-            <span className="text-lg font-semibold tracking-tight text-foreground truncate">
-              {dashboardName}
-            </span>
-            <span className="text-xs text-muted-foreground truncate">
-              {companyName}
-            </span>
-          </div>
-        )}
+        <div className={cn(
+          "flex flex-col min-w-0 transition-all duration-300",
+          expanded ? "opacity-100 w-auto" : "opacity-0 w-0 overflow-hidden"
+        )}>
+          <span className="text-lg font-semibold tracking-tight text-foreground truncate whitespace-nowrap">
+            {dashboardName}
+          </span>
+          <span className="text-xs text-muted-foreground truncate whitespace-nowrap">
+            {companyName}
+          </span>
+        </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      {/* Nav */}
+      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
         {visibleNavItems.map((item) => {
           const isActive = pathname === item.href
-
           return (
             <Link
               key={item.href}
@@ -179,33 +127,28 @@ export function Sidebar({
                   : "text-muted-foreground hover:text-sidebar-foreground"
               )}
             >
-              <item.icon
-                className={cn(
-                  "h-5 w-5 flex-shrink-0",
-                  isActive && "text-primary"
+              <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
+
+              <div className={cn(
+                "flex flex-1 items-center justify-between transition-all duration-300 overflow-hidden",
+                expanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+              )}>
+                <span className="whitespace-nowrap">{item.title}</span>
+                {item.badge && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-gradient-to-r from-primary to-accent text-primary-foreground whitespace-nowrap">
+                    {item.badge}
+                  </span>
                 )}
-              />
-
-              {!collapsed && (
-                <>
-                  <span className="flex-1">{item.title}</span>
-
-                  {item.badge && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-gradient-to-r from-primary to-accent text-primary-foreground">
-                      {item.badge}
-                    </span>
-                  )}
-                </>
-              )}
+              </div>
             </Link>
           )
         })}
       </nav>
 
-      <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
+      {/* Bottom nav */}
+      <div className="px-2 py-4 border-t border-sidebar-border space-y-1">
         {bottomNavItems.map((item) => {
           const isActive = pathname === item.href
-
           return (
             <Link
               key={item.href}
@@ -218,35 +161,16 @@ export function Sidebar({
                   : "text-muted-foreground hover:text-sidebar-foreground"
               )}
             >
-              <item.icon
-                className={cn(
-                  "h-5 w-5 flex-shrink-0",
-                  isActive && "text-primary"
-                )}
-              />
-
-              {!collapsed && <span>{item.title}</span>}
+              <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
+              <span className={cn(
+                "whitespace-nowrap transition-all duration-300 overflow-hidden",
+                expanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+              )}>
+                {item.title}
+              </span>
             </Link>
           )
         })}
-      </div>
-
-      <div className="px-3 py-3 border-t border-sidebar-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setCollapsed(!collapsed)}
-          className="w-full justify-center text-muted-foreground hover:text-foreground"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <>
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              <span>Collapse</span>
-            </>
-          )}
-        </Button>
       </div>
     </aside>
   )
