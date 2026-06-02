@@ -1,33 +1,54 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 export function VoltIntro({ onDone }: { onDone: () => void }) {
   const [fading, setFading] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
-    // Start fade out at 3.2s, fully done at 3.7s
-    const fadeTimer = setTimeout(() => setFading(true), 3200)
-    const doneTimer = setTimeout(() => onDone(), 3700)
+    const video = videoRef.current
+    if (!video) return
+
+    function handleEnded() {
+      setFading(true)
+      setTimeout(() => onDone(), 700)
+    }
+
+    video.addEventListener("ended", handleEnded)
+
+    // Fallback: if video doesn't load or play, bail out after 5s
+    const fallback = setTimeout(() => {
+      setFading(true)
+      setTimeout(() => onDone(), 700)
+    }, 5000)
+
     return () => {
-      clearTimeout(fadeTimer)
-      clearTimeout(doneTimer)
+      video.removeEventListener("ended", handleEnded)
+      clearTimeout(fallback)
     }
   }, [onDone])
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-background transition-opacity duration-500 ${
-        fading ? "opacity-0" : "opacity-100"
-      }`}
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0a0f]"
+      style={{
+        transition: "opacity 0.7s ease-out",
+        opacity: fading ? 0 : 1,
+        pointerEvents: fading ? "none" : "auto",
+      }}
     >
       <video
+        ref={videoRef}
         src="/volt-intro.mp4"
         autoPlay
         muted
         playsInline
-        className="max-w-sm w-full"
-        style={{ objectFit: "contain" }}
+        style={{
+          width: "100vw",
+          height: "100vh",
+          objectFit: "cover",
+        }}
       />
     </div>
   )

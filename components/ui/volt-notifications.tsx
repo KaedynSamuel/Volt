@@ -25,7 +25,16 @@ type ToastNotif = {
   relatedId: string | null
 }
 
-function playSound(src: string) {
+// Global seen IDs — persists across re-renders and component remounts
+const GLOBAL_SEEN_IDS = new Set<number>()
+// Track last sound play time to prevent rapid duplicates
+let lastSoundTime = 0
+
+export function playNotifSound(src: string) {
+  const now = Date.now()
+  // Debounce: don't play same sound within 1.5 seconds
+  if (now - lastSoundTime < 1500) return
+  lastSoundTime = now
   try {
     const audio = new Audio(src)
     audio.volume = 0.6
@@ -33,8 +42,11 @@ function playSound(src: string) {
   } catch {}
 }
 
-function getNotifSound(type: string) {
+export function getNotifSound(type: string) {
   const t = type?.toLowerCase() || ""
+  if (t.includes("achievement") || t.includes("level") || t.includes("badge") || t.includes("xp")) {
+    return "/sounds/notif-achievement.mp3"
+  }
   if (t.includes("complet") || t.includes("resolv") || t.includes("closed") || t.includes("done")) {
     return "/sounds/notif-complete.mp3"
   }
@@ -45,7 +57,7 @@ function getNotifSound(type: string) {
 export function VoltNotificationToasts() {
   const router = useRouter()
   const [toasts, setToasts] = useState<ToastNotif[]>([])
-  const seenIds = useRef<Set<number>>(new Set())
+  const dismissTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
 
   const fetchAndNotify = useCallback(async () => {
     const session = getStoredSession()
@@ -61,30 +73,62 @@ export function VoltNotificationToasts() {
       const data: VoltNotification[] = await res.json()
       if (!Array.isArray(data)) return
 
-      const newOnes = data.filter((n) => !n.isRead && !seenIds.current.has(n.id))
+      // Only process notifications we haven't seen before
+      const newOnes = data.filter((n) => !n.isRead && !GLOBAL_SEEN_IDS.has(n.id))
 
-      newOnes.forEach((n) => {
-        seenIds.current.add(n.id)
-        playSound(getNotifSound(n.type))
-        setToasts((prev) => [
-          ...prev,
-          { id: n.id, type: n.type, title: n.title, message: n.message, relatedId: n.relatedId },
-        ])
-        // Auto-dismiss after 6s
+      if (newOnes.length === 0) return
+
+      // Mark all as seen first to prevent duplicates on rapid refetch
+      newOnes.forEach((n) => GLOBAL_SEEN_IDS.add(n.id))
+
+      // Play ONE sound for the batch (highest priority)
+      const hasAchievement = newOnes.some((n) => getNotifSound(n.type) === "/sounds/notif-achievement.mp3")
+      const hasComplete = newOnes.some((n) => getNotifSound(n.type) === "/sounds/notif-complete.mp3")
+      const hasTicket = newOnes.some((n) => getNotifSound(n.type) === "/sounds/notif-ticket.mp3")
+
+      if (hasAchievement) playNotifSound("/sounds/notif-achievement.mp3")
+      else if (hasComplete) playNotifSound("/sounds/notif-complete.mp3")
+      else if (hasTicket) playNotifSound("/sounds/notif-ticket.mp3")
+      else playNotifSound("/sounds/notif-task.mp3")
+
+      // Add toasts one by one with slight delay
+      newOnes.forEach((n, i) => {
         setTimeout(() => {
-          setToasts((prev) => prev.filter((t) => t.id !== n.id))
-        }, 6000)
+          setToasts((prev) => {
+            // Don't add if already in toast list
+            if (prev.some((t) => t.id === n.id)) return prev
+            return [
+              ...prev,
+              { id: n.id, type: n.type, title: n.title, message: n.message, relatedId: n.relatedId },
+            ]
+          })
+
+          // Auto-dismiss after 6s
+          const timer = setTimeout(() => {
+            setToasts((prev) => prev.filter((t) => t.id !== n.id))
+            dismissTimers.current.delete(n.id)
+          }, 6000)
+          dismissTimers.current.set(n.id, timer)
+        }, i * 300)
       })
     } catch {}
   }, [])
 
   useEffect(() => {
     fetchAndNotify()
-    const interval = setInterval(fetchAndNotify, 20000)
-    return () => clearInterval(interval)
+    const interval = setInterval(fetchAndNotify, 25000)
+    return () => {
+      clearInterval(interval)
+      dismissTimers.current.forEach((t) => clearTimeout(t))
+    }
   }, [fetchAndNotify])
 
   function dismiss(id: number) {
+    const timer = dismissTimers.current.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      dismissTimers.current.delete(id)
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }
 
@@ -92,6 +136,7 @@ export function VoltNotificationToasts() {
     dismiss(toast.id)
     const type = toast.type?.toLowerCase() || ""
     if (type.includes("ticket")) router.push("/tickets")
+    else if (type.includes("achievement") || type.includes("level")) router.push("/achievements")
     else router.push("/tasks")
   }
 
@@ -99,36 +144,42 @@ export function VoltNotificationToasts() {
 
   return (
     <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
-      {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className={cn(
-            "pointer-events-auto flex items-start gap-3 rounded-2xl border bg-background/95 backdrop-blur-xl p-4 shadow-2xl",
-            "animate-in slide-in-from-bottom-4 fade-in duration-300",
-            "border-primary/30",
-          )}
-        >
-          <div className="text-2xl leading-none mt-0.5">
-            {toast.type?.includes("ticket") ? "🎫" : toast.type?.includes("complet") ? "✅" : "⚡"}
+      {toasts.map((toast) => {
+        const t = toast.type?.toLowerCase() || ""
+        const emoji = t.includes("achievement") || t.includes("level") ? "🏆"
+          : t.includes("ticket") ? "🎫"
+          : t.includes("complet") || t.includes("resolv") ? "✅"
+          : "⚡"
+
+        return (
+          <div
+            key={toast.id}
+            className={cn(
+              "pointer-events-auto flex items-start gap-3 rounded-2xl border bg-background/95 backdrop-blur-xl p-4 shadow-2xl",
+              "animate-in slide-in-from-bottom-4 fade-in duration-300",
+              "border-primary/30",
+            )}
+          >
+            <div className="text-2xl leading-none mt-0.5">{emoji}</div>
+            <button
+              type="button"
+              onClick={() => handleClick(toast)}
+              className="flex-1 text-left min-w-0"
+            >
+              <p className="text-sm font-bold text-foreground truncate">{toast.title}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{toast.message}</p>
+              <p className="mt-1 text-[10px] text-primary font-semibold">Click to open →</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => dismiss(toast.id)}
+              className="shrink-0 rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => handleClick(toast)}
-            className="flex-1 text-left min-w-0"
-          >
-            <p className="text-sm font-bold text-foreground truncate">{toast.title}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{toast.message}</p>
-            <p className="mt-1 text-[10px] text-primary font-semibold">Click to open →</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => dismiss(toast.id)}
-            className="shrink-0 rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

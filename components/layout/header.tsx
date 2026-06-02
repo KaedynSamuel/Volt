@@ -67,14 +67,6 @@ function notifIcon(type: string) {
   return "🔔"
 }
 
-function playSound(src: string) {
-  try {
-    const audio = new Audio(src)
-    audio.volume = 0.6
-    audio.play().catch(() => {})
-  } catch {}
-}
-
 export function Header({
   title,
   subtitle,
@@ -88,8 +80,8 @@ export function Header({
   const [notifications, setNotifications] = useState<VoltNotification[]>([])
   const [notifOpen, setNotifOpen] = useState(false)
   const [visible, setVisible] = useState(false)
-  const prevNotifIds = useRef<Set<number>>(new Set())
-  const headerRef = useRef<HTMLDivElement>(null)
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const headerRef = useRef<HTMLElement>(null)
 
   const unreadCount = notifications.filter((n) => !n.isRead).length
 
@@ -103,25 +95,8 @@ export function Header({
         { cache: "no-store" },
       )
       if (res.ok) {
-        const data: VoltNotification[] = await res.json()
-        const incoming = Array.isArray(data) ? data : []
-
-        // Play sounds for new notifications
-        incoming.forEach((n) => {
-          if (!prevNotifIds.current.has(n.id) && !n.isRead) {
-            const type = n.type?.toLowerCase() || ""
-            if (type.includes("complet") || type.includes("resolv") || type.includes("closed") || type.includes("done")) {
-              playSound("/sounds/notif-complete.mp3")
-            } else if (type.includes("ticket")) {
-              playSound("/sounds/notif-ticket.mp3")
-            } else {
-              playSound("/sounds/notif-task.mp3")
-            }
-          }
-        })
-
-        prevNotifIds.current = new Set(incoming.map((n) => n.id))
-        setNotifications(incoming)
+        const data = await res.json()
+        setNotifications(Array.isArray(data) ? data : [])
       }
     } catch {}
   }, [])
@@ -131,6 +106,25 @@ export function Header({
     const interval = setInterval(fetchNotifications, 30000)
     return () => clearInterval(interval)
   }, [fetchNotifications])
+
+  // Show header when dropdown is open — prevent glitch
+  useEffect(() => {
+    if (notifOpen) {
+      if (hideTimer.current) clearTimeout(hideTimer.current)
+      setVisible(true)
+    }
+  }, [notifOpen])
+
+  function handleMouseEnter() {
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    setVisible(true)
+  }
+
+  function handleMouseLeave() {
+    // Only hide if no dropdown is open
+    if (notifOpen) return
+    hideTimer.current = setTimeout(() => setVisible(false), 300)
+  }
 
   async function markAllRead() {
     const session = getStoredSession()
@@ -179,21 +173,21 @@ export function Header({
 
   return (
     <>
-      {/* Hover trigger zone - always visible thin strip at top */}
+      {/* Invisible hover trigger strip at very top */}
       <div
-        className="h-1 w-full bg-transparent z-50 absolute top-0 left-0"
-        onMouseEnter={() => setVisible(true)}
+        className="absolute top-0 left-0 right-0 h-2 z-50"
+        onMouseEnter={handleMouseEnter}
       />
 
       <header
         ref={headerRef}
-        onMouseEnter={() => setVisible(true)}
-        onMouseLeave={() => setVisible(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         className={cn(
-          "flex items-center justify-between px-6 py-4 border-b border-border bg-background/80 backdrop-blur-sm transition-all duration-300 z-40",
+          "flex items-center justify-between px-6 py-4 border-b border-border bg-background/90 backdrop-blur-sm transition-all duration-300 z-40",
           visible
-            ? "opacity-100 translate-y-0 h-auto"
-            : "opacity-0 -translate-y-full h-0 py-0 border-0 overflow-hidden pointer-events-none"
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 -translate-y-full pointer-events-none h-0 py-0 border-0 overflow-hidden"
         )}
       >
         <div>
@@ -202,13 +196,11 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Switch Dashboard */}
           <Button size="sm" variant="outline" onClick={() => router.push("/dashboards")} className="hidden sm:flex">
             <LayoutDashboard className="h-4 w-4 mr-2" />
             Switch Dashboard
           </Button>
 
-          {/* Volty tour button */}
           {hasTourForPage && (
             <Button
               size="sm"
@@ -229,7 +221,6 @@ export function Header({
             </Button>
           )}
 
-          {/* New dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground glow">
@@ -246,8 +237,16 @@ export function Header({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Notification Bell */}
-          <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
+          {/* Notification Bell — keeps header visible while open */}
+          <DropdownMenu
+            open={notifOpen}
+            onOpenChange={(open) => {
+              setNotifOpen(open)
+              if (!open) {
+                hideTimer.current = setTimeout(() => setVisible(false), 800)
+              }
+            }}
+          >
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5 text-muted-foreground" />
@@ -306,7 +305,6 @@ export function Header({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full">
