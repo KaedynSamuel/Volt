@@ -71,7 +71,7 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build Electron app
-        run: npx electron-builder --win
+        run: ./node_modules/.bin/electron-builder --win --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
