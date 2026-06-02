@@ -544,14 +544,12 @@ function BadgeImage({
   const [failed, setFailed] = useState(false)
   const animatedSrc = `/badges/animated/${badge.id}.html`
 
-  // Sizes: small=56, normal=100, large=120
-  const px = size === "large" ? 120 : size === "small" ? 56 : 100
+  // px = outer container; inner iframe renders at 300px then scales down
+  const px = size === "large" ? 130 : size === "small" ? 70 : 110
+  const scale = px / 300
 
   return (
-    <div
-      className="relative shrink-0"
-      style={{ width: px, height: px }}
-    >
+    <div className="relative shrink-0" style={{ width: px, height: px, overflow: "hidden" }}>
       {!failed ? (
         <iframe
           src={animatedSrc}
@@ -561,28 +559,23 @@ function BadgeImage({
             width: 300,
             height: 300,
             border: "none",
+            background: "transparent",
             pointerEvents: "none",
-            transform: `scale(${px / 300})`,
+            transform: `scale(${scale})`,
             transformOrigin: "top left",
-            filter: badge.unlocked ? undefined : "grayscale(1) brightness(0.3)",
+            // negative margins collapse the scaled-down whitespace
+            marginBottom: -(300 - px),
+            marginRight: -(300 - px),
+            filter: badge.unlocked ? undefined : "grayscale(1) brightness(0.28) opacity(0.55)",
           }}
           onError={() => setFailed(true)}
         />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center rounded-3xl border"
-          style={{
-            borderColor: badge.unlocked ? `${tierColor}30` : "rgba(255,255,255,0.08)",
-            background: badge.unlocked ? `${tierColor}10` : "rgba(255,255,255,0.03)",
-          }}
+          className="flex h-full w-full items-center justify-center rounded-3xl"
+          style={{ background: badge.unlocked ? `${tierColor}12` : "rgba(255,255,255,0.03)" }}
         >
-          <Icon
-            style={{
-              width: px * 0.5,
-              height: px * 0.5,
-              color: badge.unlocked ? tierColor : "rgba(255,255,255,0.3)",
-            }}
-          />
+          <Icon style={{ width: px * 0.5, height: px * 0.5, color: badge.unlocked ? tierColor : "rgba(255,255,255,0.3)" }} />
         </div>
       )}
       {!badge.unlocked && (
@@ -874,6 +867,7 @@ export default function AchievementsPage() {
           userRole={session?.role || "employee"}
           tierName={rank.tier.name}
           tierColor={rank.tier.color}
+          tierIndex={rank.tierIndex}
           level={rank.globalLevel}
           totalXp={stats.totalXp}
           xpProgress={Math.round(((stats.totalXp % 100) / 100) * 100)}
@@ -960,133 +954,91 @@ export default function AchievementsPage() {
             </button>
           </div>
 
-          <section data-tour="xp-level-card" className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-card/55 p-6 shadow-2xl backdrop-blur-xl md:p-8">
-            <div
-              className="absolute right-0 top-0 h-56 w-56 rounded-full blur-3xl"
-              style={{ backgroundColor: rank.tier.glow }}
-            />
+          {/* ── Inline Banner replaces old XP card ── */}
+          <section data-tour="xp-level-card" className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-card/55 shadow-2xl backdrop-blur-xl" style={{ borderColor: `${rank.tier.color}30` }}>
+            {/* Ambient glow */}
+            <div className="absolute right-0 top-0 h-64 w-64 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: rank.tier.glow, opacity: 0.35 }} />
+            <div className="absolute left-0 bottom-0 h-48 w-48 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: rank.tier.glow, opacity: 0.15 }} />
+            {/* Hex texture */}
+            <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.025, backgroundImage: `repeating-linear-gradient(0deg,${rank.tier.color} 0,transparent 1px,transparent 18px),repeating-linear-gradient(60deg,${rank.tier.color} 0,transparent 1px,transparent 18px),repeating-linear-gradient(120deg,${rank.tier.color} 0,transparent 1px,transparent 18px)` }} />
+            {/* Top shimmer strip */}
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg,transparent,${rank.tier.color},transparent)` }} />
 
-            <div className="relative grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-              <div>
-                <div
-                  className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
-                  style={{
-                    borderColor: `${rank.tier.color}40`,
-                    backgroundColor: `${rank.tier.color}18`,
-                    color: rank.tier.color,
-                  }}
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Volt Achievements
+            <div className="relative p-6 md:p-8">
+              <div className="flex items-start justify-between gap-6 flex-wrap">
+                {/* Left: avatar + info */}
+                <div className="flex items-center gap-5">
+                  {/* Avatar with orbit */}
+                  <div className="relative shrink-0">
+                    <div className="absolute inset-0 rounded-full border animate-spin" style={{ borderColor: `${rank.tier.color}25`, animationDuration: "8s", margin: -8 }} />
+                    <div className="h-16 w-16 rounded-full flex items-center justify-center text-xl font-black text-white border-2" style={{ background: `linear-gradient(135deg, ${rank.tier.color}, ${rank.tier.color}80)`, borderColor: `${rank.tier.color}60`, boxShadow: `0 0 24px ${rank.tier.color}50` }}>
+                      {(session?.fullName || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-foreground">{session?.fullName || "Volt User"}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest mt-0.5">{session?.role || "employee"}</p>
+                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1" style={{ borderColor: `${rank.tier.color}35`, background: `${rank.tier.color}12` }}>
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: rank.tier.color, boxShadow: `0 0 6px ${rank.tier.color}` }} />
+                      <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: rank.tier.color }}>{rank.tier.name} Tier</span>
+                    </div>
+                  </div>
                 </div>
 
-                <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
-                  Build your yearly rank.
-                </h1>
-
-                <p className="mt-3 max-w-2xl text-muted-foreground">
-                  Complete tasks, resolve tickets, unlock custom badges, and
-                  show your top badges on your profile. Every year your rank can
-                  reset, but you keep the rank badge you finished on.
-                </p>
-
-                <div className="mt-6 grid gap-3 sm:grid-cols-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-xs text-muted-foreground">Total XP</p>
-                    <p className="mt-2 text-2xl font-bold">{stats.totalXp}</p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-xs text-muted-foreground">Level</p>
-                    <p className="mt-2 text-2xl font-bold">
-                      {rank.globalLevel}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-xs text-muted-foreground">Badges</p>
-                    <p className="mt-2 text-2xl font-bold">
-                      {unlockedBadges.length}/{badges.length}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-xs text-muted-foreground">Profile</p>
-                    <p className="mt-2 text-2xl font-bold">
-                      {profileBadges.length}/{MAX_PROFILE_BADGES}
-                    </p>
-                  </div>
+                {/* Right: level number (always visible) */}
+                <div className="text-right shrink-0">
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Level</p>
+                  <p className="text-5xl font-black leading-none" style={{ color: rank.tier.color, textShadow: `0 0 30px ${rank.tier.color}80` }}>{rank.globalLevel}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{stats.totalXp.toLocaleString()} XP</p>
                 </div>
               </div>
 
-              <div className="relative rounded-[2rem] border border-white/10 bg-black/25 p-5 shadow-2xl">
-                <div
-                  className="absolute inset-0 rounded-[2rem] opacity-30 blur-2xl"
-                  style={{ backgroundColor: rank.tier.glow }}
-                />
+              {/* Divider */}
+              <div className="my-5 h-px" style={{ background: `linear-gradient(90deg,transparent,${rank.tier.color}25,transparent)` }} />
 
-                <div className="relative">
-                  <div
-                    className="mx-auto flex h-28 w-28 items-center justify-center rounded-[2rem] border border-white/15 bg-white/10 shadow-2xl"
-                    style={{
-                      boxShadow: `0 0 55px ${rank.tier.glow}`,
-                    }}
-                  >
-                    <img
-                      src={rank.tier.image}
-                      alt={rank.tier.name}
-                      className="h-20 w-20 object-contain"
-                      onError={(event) => {
-                        event.currentTarget.style.display = "none"
-                      }}
-                    />
-                    <Gem
-                      className="absolute h-14 w-14"
-                      style={{ color: rank.tier.color }}
-                    />
-                  </div>
-
-                  <div className="mt-5 text-center">
-                    <p
-                      className="text-sm font-semibold uppercase tracking-[0.25em]"
-                      style={{ color: rank.tier.color }}
-                    >
-                      {rank.tier.name}
-                    </p>
-
-                    <h2 className="mt-1 text-3xl font-bold">
-                      Level {rank.tierLevel}
-                    </h2>
-
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {rank.tier.description}
-                    </p>
-                  </div>
-
-                  <div className="mt-6">
-                    <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{rank.currentLevelXp} XP</span>
-                      <span>{rank.xpToNextLevel} XP to next level</span>
+              {/* Selected badges row */}
+              <div className="flex items-center gap-3 mb-5">
+                {[0,1,2,3,4].map(i => {
+                  const b = profileBadges[i]
+                  return (
+                    <div key={i} className="relative overflow-hidden shrink-0" style={{ width: 56, height: 56 }}>
+                      {b ? (
+                        <>
+                          <iframe src={`/badges/animated/${b.id}.html`} scrolling="no" style={{ width:300,height:300,border:"none",background:"transparent",pointerEvents:"none",transform:"scale(0.187)",transformOrigin:"top left",marginBottom:-(300-56),marginRight:-(300-56) }} />
+                        </>
+                      ) : (
+                        <div className="h-full w-full rounded-xl border flex items-center justify-center text-lg" style={{ borderColor: `${rank.tier.color}15`, background: `${rank.tier.color}05`, color: `${rank.tier.color}25` }}>+</div>
+                      )}
                     </div>
+                  )
+                })}
+                <span className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground">Featured badges</span>
+              </div>
 
-                    <div className="h-3 overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{
-                          width: `${rank.progressPercent}%`,
-                          background: `linear-gradient(90deg, ${rank.tier.color}, #ffffff)`,
-                        }}
-                      />
-                    </div>
-                  </div>
+              {/* XP progress bar */}
+              <div>
+                <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{rank.currentLevelXp} / 100 XP</span>
+                  <span>{rank.xpToNextLevel} XP to next level</span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden bg-white/[0.07]">
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${rank.progressPercent}%`, background: `linear-gradient(90deg, ${rank.tier.color}90, ${rank.tier.color}, #ffffff80)` }} />
+                </div>
+              </div>
 
-                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-center text-xs text-muted-foreground">
-                    Year-end badge:{" "}
-                    <span className="font-semibold text-foreground">
-                      {currentYearRank.year} {rank.tier.name} Level{" "}
-                      {rank.tierLevel}
-                    </span>
-                  </div>
+              {/* Stats row */}
+              <div className="mt-5 grid grid-cols-3 gap-3">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground">Badges</p>
+                  <p className="mt-1 text-xl font-bold">{unlockedBadges.length}/{badges.length}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground">Tasks Done</p>
+                  <p className="mt-1 text-xl font-bold">{stats.tasksCompleted}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground">Year-end</p>
+                  <p className="mt-1 text-sm font-bold truncate">{rank.tier.name} Lv{rank.tierLevel}</p>
                 </div>
               </div>
             </div>
@@ -1160,120 +1112,24 @@ export default function AchievementsPage() {
                 })}
               </section>
 
-              <section className="rounded-[2rem] border border-white/10 bg-card/50 p-6 shadow-xl backdrop-blur-xl">
-                <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold">Task Page Progress</h2>
-                    <p className="text-sm text-muted-foreground">
-                      This updates when you complete tasks from the task page XP
-                      toast.
-                    </p>
-                  </div>
-
-                  <div
-                    className="rounded-full border px-3 py-1 text-xs font-semibold"
-                    style={{
-                      borderColor: `${rank.tier.color}35`,
-                      backgroundColor: `${rank.tier.color}16`,
-                      color: rank.tier.color,
-                    }}
-                  >
-                    {storedProgress.totalXp} synced XP
-                  </div>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-xs text-muted-foreground">
-                      Rewarded Tasks
-                    </p>
-                    <p className="mt-2 text-2xl font-bold">
-                      {storedProgress.completedTaskIds.length}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-xs text-muted-foreground">
-                      Last Completed
-                    </p>
-                    <p className="mt-2 line-clamp-1 text-base font-semibold">
-                      {storedProgress.lastCompletedTaskTitle || "No task yet"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-xs text-muted-foreground">
-                      Recent Unlock
-                    </p>
-                    <p className="mt-2 line-clamp-1 text-base font-semibold">
-                      {storedProgress.recentAchievements[0] || "Keep going"}
-                    </p>
-                  </div>
-                </div>
-              </section>
 
               <section className="rounded-[2rem] border border-white/10 bg-card/50 p-6 shadow-xl backdrop-blur-xl">
-                <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold">Profile Badges</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Choose up to {MAX_PROFILE_BADGES} unlocked badges to show
-                      on your profile.
-                    </p>
-                  </div>
-
-                  <Button variant="outline">
-                    <Award className="h-4 w-4" />
-                    {profileBadges.length}/{MAX_PROFILE_BADGES} selected
-                  </Button>
-                </div>
-
-                <div className="flex min-h-[110px] flex-wrap gap-4 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
-                  {profileBadges.length > 0 ? (
-                    profileBadges.map((badge) => (
-                      <button
-                        key={badge.id}
-                        onClick={() => toggleProfileBadge(badge)}
-                        className="group relative text-left"
-                      >
-                        <BadgeImage
-                          badge={badge}
-                          tierColor={rank.tier.color}
-                          size="large"
-                        />
-
-                        <div className="pointer-events-none absolute left-1/2 top-full z-30 mt-3 w-56 -translate-x-1/2 rounded-2xl border border-white/10 bg-black/90 p-3 text-xs opacity-0 shadow-2xl backdrop-blur-xl transition group-hover:opacity-100">
-                          <p className="font-semibold text-white">
-                            {badge.name}
-                          </p>
-                          <p className="mt-1 text-white/50">
-                            {badge.description}
-                          </p>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Lock className="h-4 w-4" />
-                      Select unlocked badges below to feature them here.
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-[2rem] border border-white/10 bg-card/50 p-6 shadow-xl backdrop-blur-xl">
+                <style>{`
+                  @keyframes sparkFloat{0%,100%{transform:translateY(0) scale(1);opacity:0.7}50%{transform:translateY(-5px) scale(1.1);opacity:1}}
+                  @keyframes pulseRing{0%,100%{transform:scale(1);opacity:0.5}50%{transform:scale(1.12);opacity:1}}
+                  @keyframes surgeZap{0%,100%{opacity:0.6;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.15)}}
+                  @keyframes voltageArc{0%{stroke-dashoffset:100}100%{stroke-dashoffset:0}}
+                  @keyframes overdriveShake{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+                  @keyframes apexRise{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+                  @keyframes legendBurn{0%,100%{filter:drop-shadow(0 0 4px currentColor)}50%{filter:drop-shadow(0 0 12px currentColor) drop-shadow(0 0 20px currentColor)}}
+                  @keyframes tierGlow{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 20px 2px var(--tc)}}
+                `}</style>
                 <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                   <div>
                     <h2 className="text-2xl font-bold">Tier Roadmap</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Every 30 levels moves you into the next Volt tier.
-                    </p>
+                    <p className="text-sm text-muted-foreground">Every 30 levels moves you into the next Volt tier.</p>
                   </div>
-
-                  <Button variant="outline">
-                    <BarChart3 className="h-4 w-4" />
-                    Level {rank.globalLevel}
-                  </Button>
+                  <Button variant="outline"><BarChart3 className="h-4 w-4" />Level {rank.globalLevel}</Button>
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-7">
@@ -1283,55 +1139,54 @@ export default function AchievementsPage() {
                     const startLevel = index * LEVELS_PER_TIER + 1
                     const endLevel = (index + 1) * LEVELS_PER_TIER
 
+                    // Unique animation + icon per tier
+                    const tierStyles: Record<string, { anim: string; icon: string; particles: boolean }> = {
+                      Spark:     { anim: "sparkFloat 2s ease-in-out infinite",     icon: "⚡", particles: true  },
+                      Pulse:     { anim: "pulseRing 1.8s ease-in-out infinite",    icon: "〜", particles: false },
+                      Surge:     { anim: "surgeZap 1.5s ease-in-out infinite",     icon: "↑", particles: false },
+                      Voltage:   { anim: "overdriveShake 2s ease-in-out infinite", icon: "V", particles: true  },
+                      Overdrive: { anim: "overdriveShake 1.2s ease-in-out infinite",icon:"▶", particles: false },
+                      Apex:      { anim: "apexRise 2s ease-in-out infinite",       icon: "△", particles: false },
+                      Legend:    { anim: "legendBurn 1.5s ease-in-out infinite",   icon: "★", particles: true  },
+                    }
+                    const ts = tierStyles[tier.name] || { anim: "", icon: "◈", particles: false }
+
                     return (
                       <div
                         key={tier.name}
-                        className={`relative overflow-hidden rounded-2xl border p-4 ${
-                          active
-                            ? "border-white/25 bg-white/10"
-                            : unlocked
-                              ? "border-white/15 bg-white/[0.055]"
-                              : "border-white/10 bg-white/[0.025] opacity-60"
+                        className={`relative overflow-hidden rounded-2xl border p-4 transition-all duration-300 ${
+                          active ? "border-white/25 bg-white/10 scale-[1.03]"
+                          : unlocked ? "border-white/15 bg-white/[0.055]"
+                          : "border-white/10 bg-white/[0.025] opacity-50"
                         }`}
+                        style={{ ["--tc" as string]: tier.color } as React.CSSProperties}
                       >
-                        {active && (
-                          <div
-                            className="absolute inset-0 opacity-20 blur-xl"
-                            style={{ backgroundColor: tier.color }}
-                          />
+                        {/* Animated bg glow */}
+                        {(active || unlocked) && (
+                          <div className="absolute inset-0 rounded-2xl opacity-15 blur-lg pointer-events-none" style={{ backgroundColor: tier.color, animation: active ? "pulseRing 2s ease-in-out infinite" : undefined }} />
                         )}
 
+                        {/* Particle dots for special tiers */}
+                        {ts.particles && active && [0,1,2].map(p => (
+                          <div key={p} className="absolute rounded-full pointer-events-none" style={{ width:3,height:3,background:tier.color,boxShadow:`0 0 6px ${tier.color}`,top:`${20+p*25}%`,right:`${10+p*15}%`,animation:`sparkFloat ${1.5+p*0.4}s ease-in-out infinite`,animationDelay:`${p*0.3}s` }} />
+                        ))}
+
                         <div className="relative">
-                          <div
-                            className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl"
-                            style={{
-                              backgroundColor: `${tier.color}18`,
-                              color: tier.color,
-                            }}
-                          >
-                            {unlocked ? (
-                              <BadgeCheck className="h-5 w-5" />
-                            ) : (
-                              <Lock className="h-5 w-5" />
-                            )}
+                          {/* Animated tier icon */}
+                          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl text-lg font-black" style={{ backgroundColor: `${tier.color}18`, color: tier.color, animation: active ? ts.anim : undefined }}>
+                            {unlocked ? ts.icon : <Lock className="h-4 w-4" />}
                           </div>
 
-                          <p className="font-semibold">{tier.name}</p>
-
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Lv {startLevel}-{endLevel}
-                          </p>
+                          <p className="font-semibold text-sm">{tier.name}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">Lv {startLevel}–{endLevel}</p>
 
                           {active && (
-                            <p
-                              className="mt-3 rounded-full px-2 py-1 text-center text-[10px] font-bold"
-                              style={{
-                                backgroundColor: `${tier.color}22`,
-                                color: tier.color,
-                              }}
-                            >
+                            <p className="mt-2 rounded-full px-2 py-0.5 text-center text-[10px] font-bold" style={{ backgroundColor: `${tier.color}22`, color: tier.color }}>
                               Current
                             </p>
+                          )}
+                          {!unlocked && (
+                            <p className="mt-2 text-[10px] text-muted-foreground">Locked</p>
                           )}
                         </div>
                       </div>

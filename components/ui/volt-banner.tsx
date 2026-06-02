@@ -8,6 +8,7 @@ type BannerProps = {
   userRole: string
   tierName: string
   tierColor: string
+  tierIndex: number
   level: number
   totalXp: number
   xpProgress: number
@@ -17,21 +18,27 @@ type BannerProps = {
   onShareEmail: () => void
 }
 
+// Each theme maps to a tier — you must have reached that tier to unlock it
 const THEMES = [
-  { name: "Voltage",  c1: "139,92,246",  c2: "34,197,94"   },
-  { name: "Spark",    c1: "34,197,94",   c2: "6,182,212"   },
-  { name: "Overdrive",c1: "245,158,11",  c2: "239,68,68"   },
-  { name: "Apex",     c1: "249,115,22",  c2: "245,158,11"  },
-  { name: "Pulse",    c1: "6,182,212",   c2: "59,130,246"  },
-  { name: "Legend",   c1: "239,68,68",   c2: "168,85,247"  },
+  { name: "Spark",     c1: "34,197,94",   c2: "6,182,212",  requiredTier: 0 },
+  { name: "Pulse",     c1: "6,182,212",   c2: "59,130,246", requiredTier: 1 },
+  { name: "Surge",     c1: "59,130,246",  c2: "139,92,246", requiredTier: 2 },
+  { name: "Voltage",   c1: "139,92,246",  c2: "34,197,94",  requiredTier: 3 },
+  { name: "Overdrive", c1: "245,158,11",  c2: "249,115,22", requiredTier: 4 },
+  { name: "Apex",      c1: "249,115,22",  c2: "239,68,68",  requiredTier: 5 },
+  { name: "Legend",    c1: "239,68,68",   c2: "168,85,247", requiredTier: 6 },
 ]
 
+const TIER_NAMES = ["Spark","Pulse","Surge","Voltage","Overdrive","Apex","Legend"]
+
 export function VoltBanner({
-  userName, userRole, tierName, tierColor,
+  userName, userRole, tierName, tierColor, tierIndex,
   level, totalXp, xpProgress, selectedBadgeIds,
   onClose, onShareTeam, onShareEmail,
 }: BannerProps) {
-  const [theme, setTheme] = useState(THEMES[0])
+  // Auto-assign theme based on current tier
+  const defaultTheme = THEMES[Math.min(tierIndex, THEMES.length - 1)]
+  const [theme, setTheme] = useState(defaultTheme)
   const [showShare, setShowShare] = useState(false)
   const [copied, setCopied] = useState(false)
   const [particles, setParticles] = useState<{id:number;x:number;y:number;size:number;delay:number}[]>([])
