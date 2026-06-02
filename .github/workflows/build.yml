@@ -24,7 +24,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --ignore-scripts
 
       - name: Build Next.js app
         run: npm run build
@@ -64,8 +64,21 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Cache Electron binary
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            electron-cache-${{ runner.os }}-
+
       - name: Install dependencies
         run: npm install --legacy-peer-deps
+        env:
+          ELECTRON_GET_USE_PROXY: false
+          GLOBAL_AGENT_NO_PROXY: "*"
 
       - name: Build Electron app
         run: npm run build:win
