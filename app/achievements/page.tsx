@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { getStoredSession } from "@/lib/auth"
 import { VoltLevelUp, VoltTierUp } from "@/components/ui/volt-levelup"
+import { VoltBanner } from "@/components/ui/volt-banner"
 
 type AchievementTask = {
   id: string
@@ -543,26 +544,13 @@ function BadgeImage({
   const [failed, setFailed] = useState(false)
   const animatedSrc = `/badges/animated/${badge.id}.html`
 
-  const sizeClasses =
-    size === "large"
-      ? "h-24 w-24 rounded-[2rem]"
-      : size === "small"
-        ? "h-12 w-12 rounded-2xl"
-        : "h-20 w-20 rounded-3xl"
-
-  const iframeSize = size === "large" ? 96 : size === "small" ? 48 : 80
-  const iconSize = size === "large" ? "h-20 w-20" : size === "small" ? "h-9 w-9" : "h-16 w-16"
+  // Sizes: small=56, normal=100, large=120
+  const px = size === "large" ? 120 : size === "small" ? 56 : 100
 
   return (
     <div
-      className={`relative flex shrink-0 items-center justify-center border overflow-hidden ${
-        badge.unlocked
-          ? "border-white/15 bg-white/10"
-          : "border-white/10 bg-white/[0.035]"
-      } ${sizeClasses}`}
-      style={{
-        boxShadow: badge.unlocked ? `0 0 35px ${tierColor}35` : undefined,
-      }}
+      className="relative shrink-0"
+      style={{ width: px, height: px }}
     >
       {!failed ? (
         <iframe
@@ -570,29 +558,35 @@ function BadgeImage({
           title={badge.name}
           scrolling="no"
           style={{
-            width: 260,
-            height: 260,
+            width: 300,
+            height: 300,
             border: "none",
             pointerEvents: "none",
-            transform: `scale(${iframeSize / 260})`,
-            transformOrigin: "center center",
-            marginTop: -(260 - iframeSize) / 2,
-            marginBottom: -(260 - iframeSize) / 2,
-            marginLeft: -(260 - iframeSize) / 2,
-            marginRight: -(260 - iframeSize) / 2,
-            filter: badge.unlocked ? undefined : "grayscale(1) brightness(0.35)",
+            transform: `scale(${px / 300})`,
+            transformOrigin: "top left",
+            filter: badge.unlocked ? undefined : "grayscale(1) brightness(0.3)",
           }}
           onError={() => setFailed(true)}
         />
       ) : (
-        <Icon
-          className={badge.unlocked ? iconSize : `${iconSize} opacity-35`}
-          style={{ color: badge.unlocked ? tierColor : "rgba(255,255,255,.5)" }}
-        />
+        <div
+          className="flex h-full w-full items-center justify-center rounded-3xl border"
+          style={{
+            borderColor: badge.unlocked ? `${tierColor}30` : "rgba(255,255,255,0.08)",
+            background: badge.unlocked ? `${tierColor}10` : "rgba(255,255,255,0.03)",
+          }}
+        >
+          <Icon
+            style={{
+              width: px * 0.5,
+              height: px * 0.5,
+              color: badge.unlocked ? tierColor : "rgba(255,255,255,0.3)",
+            }}
+          />
+        </div>
       )}
-
       {!badge.unlocked && (
-        <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-black/75">
+        <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-black/80 z-10">
           <Lock className="h-3 w-3 text-white/50" />
         </div>
       )}
@@ -632,6 +626,7 @@ export default function AchievementsPage() {
     })
   const [levelUpData, setLevelUpData] = useState<{ level: number; tierName: string; tierColor: string } | null>(null)
   const [tierUpData, setTierUpData] = useState<{ fromTier: string; toTier: string; toColor: string } | null>(null)
+  const [showBanner, setShowBanner] = useState(false)
   const prevLevelRef = React.useRef<number | null>(null)
   const prevTierRef = React.useRef<string | null>(null)
 
@@ -873,6 +868,27 @@ export default function AchievementsPage() {
         ]}
       />
       {/* Level-up animation overlay */}
+      {showBanner && (
+        <VoltBanner
+          userName={session?.fullName || "Volt User"}
+          userRole={session?.role || "employee"}
+          tierName={rank.tier.name}
+          tierColor={rank.tier.color}
+          level={rank.globalLevel}
+          totalXp={stats.totalXp}
+          xpProgress={Math.round(((stats.totalXp % 100) / 100) * 100)}
+          selectedBadgeIds={selectedBadgeIds}
+          onClose={() => setShowBanner(false)}
+          onShareTeam={() => {
+            setShowBanner(false)
+            alert("Shared to team chat! (wire to team API)")
+          }}
+          onShareEmail={() => {
+            setShowBanner(false)
+            alert("Shared via email! (wire to email API)")
+          }}
+        />
+      )}
       {tierUpData && (
         <VoltTierUp
           fromTier={tierUpData.fromTier}
@@ -899,6 +915,51 @@ export default function AchievementsPage() {
         </div>
 
         <div className="mx-auto max-w-7xl space-y-7">
+
+          {/* Banner + Level Badge row */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            {/* Level badge display */}
+            <div className="flex items-center gap-4">
+              {(() => {
+                const lvl = rank.globalLevel
+                const thresholds = [1,11,21,31,41,51,61,71,81,91]
+                const badgeLevel = [...thresholds].reverse().find(t => lvl >= t) || 1
+                return (
+                  <div style={{ width:80, height:80, position:"relative", flexShrink:0 }}>
+                    <iframe
+                      src={`/badges/levels/level-${badgeLevel}.html`}
+                      scrolling="no"
+                      style={{ width:300, height:300, border:"none", pointerEvents:"none", transform:"scale(0.267)", transformOrigin:"top left", marginBottom:-(300-80), marginRight:-(300-80) }}
+                    />
+                  </div>
+                )
+              })()}
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest" style={{ fontFamily:"'Courier New',monospace", fontSize:9 }}>Your level badge</p>
+                <p className="text-2xl font-black" style={{ color: rank.tier.color }}>Level {rank.globalLevel}</p>
+                <p className="text-xs text-muted-foreground">{rank.tier.name} Tier</p>
+              </div>
+            </div>
+
+            {/* Banner button */}
+            <button
+              onClick={() => setShowBanner(true)}
+              className="flex items-center gap-2 rounded-2xl border px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:shadow-lg"
+              style={{
+                borderColor: `${rank.tier.color}40`,
+                background: `${rank.tier.color}10`,
+                color: rank.tier.color,
+                fontFamily: "'Courier New',monospace",
+                letterSpacing:"0.1em",
+                textTransform:"uppercase",
+                fontSize:11,
+              }}
+            >
+              <span style={{ fontSize:16 }}>⚡</span>
+              View My Banner
+            </button>
+          </div>
+
           <section data-tour="xp-level-card" className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-card/55 p-6 shadow-2xl backdrop-blur-xl md:p-8">
             <div
               className="absolute right-0 top-0 h-56 w-56 rounded-full blur-3xl"
@@ -1308,30 +1369,30 @@ export default function AchievementsPage() {
                             : "border-white/10 bg-white/[0.025]"
                         }`}
                       >
-                        <div className="flex gap-4">
+                        <div className="flex flex-col items-center gap-3">
                           <BadgeImage
                             badge={badge}
                             tierColor={rank.tier.color}
                           />
 
-                          <div className="min-w-0 flex-1">
+                          <div className="w-full text-center">
                             <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <h3 className="font-semibold">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-sm">
                                   {badge.name}
                                 </h3>
-                                <p className="mt-1 text-sm text-muted-foreground">
+                                <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
                                   {badge.description}
                                 </p>
                               </div>
 
                               {badge.unlocked ? (
                                 <Award
-                                  className="h-5 w-5 shrink-0"
+                                  className="h-4 w-4 shrink-0 mt-0.5"
                                   style={{ color: rank.tier.color }}
                                 />
                               ) : (
-                                <Lock className="h-5 w-5 shrink-0 text-muted-foreground" />
+                                <Lock className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
                               )}
                             </div>
 
