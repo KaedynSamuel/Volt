@@ -620,6 +620,7 @@ export default function AchievementsPage() {
   const [levelUpData, setLevelUpData] = useState<{ level: number; tierName: string; tierColor: string } | null>(null)
   const [tierUpData, setTierUpData] = useState<{ fromTier: string; toTier: string; toColor: string } | null>(null)
   const [showBanner, setShowBanner] = useState(false)
+  const [badgeFilter, setBadgeFilter] = useState<"All"|"Easy"|"Medium"|"Hard"|"Legendary">("All")
   const prevLevelRef = React.useRef<number | null>(null)
   const prevTierRef = React.useRef<string | null>(null)
 
@@ -670,15 +671,27 @@ export default function AchievementsPage() {
     }
   }, [mounted, progressStorageKey])
 
-  // Detect level-up and tier-up and trigger animations
+  // Detect level-up and tier-up — only fires when XP genuinely increases
+  const prevXpRef = React.useRef<number | null>(null)
   useEffect(() => {
     if (!mounted) return
     const rank = getAchievementRank(storedProgress.totalXp)
     const currentLevel = rank.globalLevel
     const currentTier = rank.tier.name
 
-    if (prevLevelRef.current !== null && currentLevel > prevLevelRef.current) {
-      // Tier changed? Show tier up first, then level up
+    // Skip on first mount — just record baseline
+    if (prevLevelRef.current === null) {
+      prevLevelRef.current = currentLevel
+      prevTierRef.current = currentTier
+      prevXpRef.current = storedProgress.totalXp
+      return
+    }
+
+    // Only fire if XP actually went UP (not just a re-render)
+    const xpIncreased = prevXpRef.current !== null && storedProgress.totalXp > prevXpRef.current
+    prevXpRef.current = storedProgress.totalXp
+
+    if (xpIncreased && currentLevel > prevLevelRef.current) {
       if (prevTierRef.current !== null && currentTier !== prevTierRef.current) {
         setTierUpData({ fromTier: prevTierRef.current, toTier: currentTier, toColor: rank.tier.color })
         setTimeout(() => {
@@ -910,50 +923,6 @@ export default function AchievementsPage() {
 
         <div className="mx-auto max-w-7xl space-y-7">
 
-          {/* Banner + Level Badge row */}
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            {/* Level badge display */}
-            <div className="flex items-center gap-4">
-              {(() => {
-                const lvl = rank.globalLevel
-                const thresholds = [1,11,21,31,41,51,61,71,81,91]
-                const badgeLevel = [...thresholds].reverse().find(t => lvl >= t) || 1
-                return (
-                  <div style={{ width:80, height:80, position:"relative", flexShrink:0 }}>
-                    <iframe
-                      src={`/badges/levels/level-${badgeLevel}.html`}
-                      scrolling="no"
-                      style={{ width:300, height:300, border:"none", pointerEvents:"none", transform:"scale(0.267)", transformOrigin:"top left", marginBottom:-(300-80), marginRight:-(300-80) }}
-                    />
-                  </div>
-                )
-              })()}
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-widest" style={{ fontFamily:"'Courier New',monospace", fontSize:9 }}>Your level badge</p>
-                <p className="text-2xl font-black" style={{ color: rank.tier.color }}>Level {rank.globalLevel}</p>
-                <p className="text-xs text-muted-foreground">{rank.tier.name} Tier</p>
-              </div>
-            </div>
-
-            {/* Banner button */}
-            <button
-              onClick={() => setShowBanner(true)}
-              className="flex items-center gap-2 rounded-2xl border px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:shadow-lg"
-              style={{
-                borderColor: `${rank.tier.color}40`,
-                background: `${rank.tier.color}10`,
-                color: rank.tier.color,
-                fontFamily: "'Courier New',monospace",
-                letterSpacing:"0.1em",
-                textTransform:"uppercase",
-                fontSize:11,
-              }}
-            >
-              <span style={{ fontSize:16 }}>⚡</span>
-              View My Banner
-            </button>
-          </div>
-
           {/* ── Inline Banner replaces old XP card ── */}
           <section data-tour="xp-level-card" className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-card/55 shadow-2xl backdrop-blur-xl" style={{ borderColor: `${rank.tier.color}30` }}>
             {/* Ambient glow */}
@@ -966,26 +935,59 @@ export default function AchievementsPage() {
 
             <div className="relative p-6 md:p-8">
               <div className="flex items-start justify-between gap-6 flex-wrap">
-                {/* Left: avatar + info */}
-                <div className="flex items-center gap-5">
+                {/* Left: level badge + avatar + info */}
+                <div className="flex items-center gap-4">
+                  {/* Level badge — locked until earned */}
+                  {(() => {
+                    const lvl = rank.globalLevel
+                    const thresholds = [1,11,21,31,41,51,61,71,81,91]
+                    const badgeLevel = [...thresholds].reverse().find(t => lvl >= t) || 1
+                    const isLocked = lvl < 1
+                    return (
+                      <div className="relative shrink-0" style={{ width:72, height:72 }}>
+                        {!isLocked ? (
+                          <iframe
+                            src={`/badges/levels/level-${badgeLevel}.html`}
+                            scrolling="no"
+                            style={{ width:300,height:300,border:"none",background:"transparent",pointerEvents:"none",transform:"scale(0.24)",transformOrigin:"top left",marginBottom:-(300-72),marginRight:-(300-72) }}
+                          />
+                        ) : (
+                          <div className="h-full w-full rounded-2xl border border-white/10 bg-white/[0.03] flex items-center justify-center">
+                            <Lock className="h-6 w-6 text-white/20" />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
                   {/* Avatar with orbit */}
                   <div className="relative shrink-0">
-                    <div className="absolute inset-0 rounded-full border animate-spin" style={{ borderColor: `${rank.tier.color}25`, animationDuration: "8s", margin: -8 }} />
-                    <div className="h-16 w-16 rounded-full flex items-center justify-center text-xl font-black text-white border-2" style={{ background: `linear-gradient(135deg, ${rank.tier.color}, ${rank.tier.color}80)`, borderColor: `${rank.tier.color}60`, boxShadow: `0 0 24px ${rank.tier.color}50` }}>
+                    <div className="absolute inset-0 rounded-full border animate-spin" style={{ borderColor: `${rank.tier.color}25`, animationDuration: "8s", margin: -6 }} />
+                    <div className="h-14 w-14 rounded-full flex items-center justify-center text-lg font-black text-white border-2" style={{ background: `linear-gradient(135deg, ${rank.tier.color}, ${rank.tier.color}80)`, borderColor: `${rank.tier.color}60`, boxShadow: `0 0 20px ${rank.tier.color}50` }}>
                       {(session?.fullName || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
                     </div>
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-foreground">{session?.fullName || "Volt User"}</p>
+                    <p className="text-lg font-bold text-foreground">{session?.fullName || "Volt User"}</p>
                     <p className="text-xs text-muted-foreground uppercase tracking-widest mt-0.5">{session?.role || "employee"}</p>
-                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1" style={{ borderColor: `${rank.tier.color}35`, background: `${rank.tier.color}12` }}>
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: rank.tier.color, boxShadow: `0 0 6px ${rank.tier.color}` }} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: rank.tier.color }}>{rank.tier.name} Tier</span>
+                    <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                      <div className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1" style={{ borderColor: `${rank.tier.color}35`, background: `${rank.tier.color}12` }}>
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: rank.tier.color, boxShadow: `0 0 6px ${rank.tier.color}` }} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: rank.tier.color }}>{rank.tier.name} Tier</span>
+                      </div>
+                      {/* View Banner button — lives here now */}
+                      <button
+                        onClick={() => setShowBanner(true)}
+                        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition hover:opacity-80"
+                        style={{ borderColor: `${rank.tier.color}35`, background: `${rank.tier.color}08`, color: rank.tier.color }}
+                      >
+                        <span style={{ fontSize:10 }}>⚡</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">View Banner</span>
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Right: level number (always visible) */}
+                {/* Right: level number */}
                 <div className="text-right shrink-0">
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Level</p>
                   <p className="text-5xl font-black leading-none" style={{ color: rank.tier.color, textShadow: `0 0 30px ${rank.tier.color}80` }}>{rank.globalLevel}</p>
@@ -1196,116 +1198,74 @@ export default function AchievementsPage() {
               </section>
 
               <section data-tour="badges-section" className="rounded-[2rem] border border-white/10 bg-card/50 p-6 shadow-xl backdrop-blur-xl">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold">Badge Collection</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Unlock badges by completing tasks, resolving tickets, and
-                    finishing work before deadlines.
-                  </p>
+                <div className="mb-5 flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <h2 className="text-2xl font-bold">Badge Collection</h2>
+                    <p className="text-sm text-muted-foreground">{unlockedBadges.length} of {badges.length} unlocked</p>
+                  </div>
+                  {/* Difficulty filter */}
+                  <div className="flex gap-2 flex-wrap">
+                    {(["All","Easy","Medium","Hard","Legendary"] as const).map(f => (
+                      <button
+                        key={f}
+                        onClick={() => setBadgeFilter(f === badgeFilter ? "All" : f)}
+                        className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
+                          badgeFilter === f ? "border-white/30 bg-white/10 text-white" : "border-white/10 bg-transparent text-muted-foreground hover:border-white/20"
+                        } ${f === "Easy" ? "hover:text-emerald-300" : f === "Medium" ? "hover:text-sky-300" : f === "Hard" ? "hover:text-purple-300" : f === "Legendary" ? "hover:text-amber-300" : ""}`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  {badges.map((badge) => {
-                    const percent = Math.min(
-                      100,
-                      Math.round((badge.metric / badge.target) * 100)
-                    )
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {badges.filter(b => badgeFilter === "All" || b.difficulty === badgeFilter).map((badge) => {
+                    const percent = Math.min(100, Math.round((badge.metric / badge.target) * 100))
                     const selected = selectedBadgeIds.includes(badge.id)
 
                     return (
                       <button
                         key={badge.id}
                         onClick={() => toggleProfileBadge(badge)}
-                        className={`group relative rounded-[1.5rem] border p-5 text-left shadow-xl transition hover:-translate-y-1 ${
+                        className={`group relative rounded-2xl border text-left transition hover:-translate-y-0.5 hover:shadow-lg ${
                           badge.unlocked
-                            ? selected
-                              ? "border-white/30 bg-white/[0.09]"
-                              : "border-white/15 bg-white/[0.055]"
-                            : "border-white/10 bg-white/[0.025]"
+                            ? selected ? "border-white/25 bg-white/[0.07]" : "border-white/12 bg-white/[0.04]"
+                            : "border-white/8 bg-white/[0.02]"
                         }`}
+                        style={{ padding: "10px 12px" }}
                       >
-                        <div className="flex flex-col items-center gap-3">
-                          <BadgeImage
-                            badge={badge}
-                            tierColor={rank.tier.color}
-                          />
+                        <div className="flex items-center gap-3">
+                          {/* Badge — no box, just the badge */}
+                          <BadgeImage badge={badge} tierColor={rank.tier.color} size="small" />
 
-                          <div className="w-full text-center">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-sm">
-                                  {badge.name}
-                                </h3>
-                                <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                                  {badge.description}
-                                </p>
-                              </div>
-
-                              {badge.unlocked ? (
-                                <Award
-                                  className="h-4 w-4 shrink-0 mt-0.5"
-                                  style={{ color: rank.tier.color }}
-                                />
-                              ) : (
-                                <Lock className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-                              )}
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-sm font-semibold truncate leading-tight">{badge.name}</p>
+                              {badge.unlocked
+                                ? <Award className="h-3.5 w-3.5 shrink-0" style={{ color: rank.tier.color }} />
+                                : <Lock className="h-3.5 w-3.5 shrink-0 text-white/20" />
+                              }
                             </div>
-
-                            <div className="mt-3 flex flex-wrap items-center gap-2">
-                              <span
-                                className={`rounded-full border px-2 py-1 text-[10px] font-semibold ${difficultyClass(
-                                  badge.difficulty
-                                )}`}
-                              >
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${difficultyClass(badge.difficulty)}`}>
                                 {badge.difficulty}
                               </span>
-
-                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] text-muted-foreground">
-                                +{badge.xpReward} XP
-                              </span>
-
-                              {selected && (
-                                <span className="rounded-full border border-white/10 bg-white/[0.08] px-2 py-1 text-[10px] text-white">
-                                  On Profile
-                                </span>
-                              )}
+                              <span className="text-[9px] text-muted-foreground">+{badge.xpReward} XP</span>
+                              {selected && <span className="text-[9px] text-white/50">● Featured</span>}
                             </div>
-
-                            <div className="mt-4">
-                              <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                                <span>
-                                  {Math.min(badge.metric, badge.target)}/
-                                  {badge.target}
-                                </span>
+                            {/* Progress bar */}
+                            <div className="mt-2">
+                              <div className="flex items-center justify-between text-[9px] text-muted-foreground mb-0.5">
+                                <span>{Math.min(badge.metric, badge.target)}/{badge.target}</span>
                                 <span>{percent}%</span>
                               </div>
-
-                              <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                                <div
-                                  className="h-full rounded-full transition-all"
-                                  style={{
-                                    width: `${percent}%`,
-                                    backgroundColor: badge.unlocked
-                                      ? rank.tier.color
-                                      : "rgba(255,255,255,0.25)",
-                                  }}
-                                />
+                              <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                                <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, backgroundColor: badge.unlocked ? rank.tier.color : "rgba(255,255,255,0.2)" }} />
                               </div>
                             </div>
                           </div>
-                        </div>
-
-                        <div className="pointer-events-none absolute left-1/2 top-4 z-30 w-64 -translate-x-1/2 rounded-2xl border border-white/10 bg-black/90 p-3 text-xs opacity-0 shadow-2xl backdrop-blur-xl transition group-hover:opacity-100">
-                          <p className="font-semibold text-white">
-                            {badge.name}
-                          </p>
-                          <p className="mt-1 text-white/50">
-                            {badge.description}
-                          </p>
-                          <p className="mt-2 text-white/40">
-                            Progress: {Math.min(badge.metric, badge.target)}/
-                            {badge.target}
-                          </p>
                         </div>
                       </button>
                     )

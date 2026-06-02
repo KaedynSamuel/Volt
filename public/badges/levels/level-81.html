@@ -99,5 +99,14 @@
     <div class="sub">Your name is written in the system</div>
   </div>
 </div>
+
+<script>
+if(window.self !== window.top){
+  var b = document.querySelector('.badge');
+  if(b){b.style.background='transparent';b.style.boxShadow='none';b.style.border='none';}
+  document.body.style.background='transparent';
+  document.documentElement.style.background='transparent';
+}
+</script>
 </body>
 </html>

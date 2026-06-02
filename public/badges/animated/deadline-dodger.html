@@ -114,5 +114,19 @@
     <div class="desc">Complete 5 tasks before due</div>
   </div>
 </div>
+
+<script>
+if(window.self !== window.top){
+  // Running inside iframe — remove dark badge background for seamless display
+  var b = document.querySelector('.badge');
+  if(b){
+    b.style.background = 'transparent';
+    b.style.boxShadow = 'none';
+    b.style.border = 'none';
+  }
+  document.body.style.background = 'transparent';
+  document.documentElement.style.background = 'transparent';
+}
+</script>
 </body>
 </html>
