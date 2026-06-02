@@ -545,7 +545,7 @@ function BadgeImage({
   const animatedSrc = `/badges/animated/${badge.id}.html`
 
   // px = outer container; inner iframe renders at 300px then scales down
-  const px = size === "large" ? 130 : size === "small" ? 70 : 110
+  const px = size === "large" ? 130 : size === "small" ? 70 : 90
   const scale = px / 300
 
   return (
@@ -671,29 +671,43 @@ export default function AchievementsPage() {
     }
   }, [mounted, progressStorageKey])
 
-  // Detect level-up and tier-up — only fires when XP genuinely increases
+  // Detect level-up and tier-up — uses localStorage to persist last-seen level
+  // so the animation never fires on page load, only on genuine XP gains
   const prevXpRef = React.useRef<number | null>(null)
   useEffect(() => {
     if (!mounted) return
+
     const rank = getAchievementRank(storedProgress.totalXp)
     const currentLevel = rank.globalLevel
     const currentTier = rank.tier.name
+    const currentXp = storedProgress.totalXp
 
-    // Skip on first mount — just record baseline
-    if (prevLevelRef.current === null) {
+    // Read last-seen values from localStorage (persists across page loads)
+    const lsKey = `volt-last-level-${session?.userId || "user"}`
+    const lsXpKey = `volt-last-xp-${session?.userId || "user"}`
+    const lastLevel = parseInt(localStorage.getItem(lsKey) || "0", 10)
+    const lastXp = parseInt(localStorage.getItem(lsXpKey) || "0", 10)
+
+    // On first ever visit with no stored data, just save baseline — no animation
+    if (lastLevel === 0) {
+      localStorage.setItem(lsKey, String(currentLevel))
+      localStorage.setItem(lsXpKey, String(currentXp))
       prevLevelRef.current = currentLevel
       prevTierRef.current = currentTier
-      prevXpRef.current = storedProgress.totalXp
+      prevXpRef.current = currentXp
       return
     }
 
-    // Only fire if XP actually went UP (not just a re-render)
-    const xpIncreased = prevXpRef.current !== null && storedProgress.totalXp > prevXpRef.current
-    prevXpRef.current = storedProgress.totalXp
+    // Only fire if XP genuinely increased since last time
+    const xpIncreased = currentXp > lastXp
 
-    if (xpIncreased && currentLevel > prevLevelRef.current) {
-      if (prevTierRef.current !== null && currentTier !== prevTierRef.current) {
-        setTierUpData({ fromTier: prevTierRef.current, toTier: currentTier, toColor: rank.tier.color })
+    if (xpIncreased && currentLevel > lastLevel) {
+      // Get the previous tier name from the previous level
+      const prevRank = getAchievementRank(lastXp)
+      const prevTier = prevRank.tier.name
+
+      if (prevTier !== currentTier) {
+        setTierUpData({ fromTier: prevTier, toTier: currentTier, toColor: rank.tier.color })
         setTimeout(() => {
           setTierUpData(null)
           setLevelUpData({ level: currentLevel, tierName: currentTier, tierColor: rank.tier.color })
@@ -704,8 +718,13 @@ export default function AchievementsPage() {
         setTimeout(() => setLevelUpData(null), 5000)
       }
     }
+
+    // Always update stored baseline after checking
+    localStorage.setItem(lsKey, String(currentLevel))
+    localStorage.setItem(lsXpKey, String(currentXp))
     prevLevelRef.current = currentLevel
     prevTierRef.current = currentTier
+    prevXpRef.current = currentXp
   }, [mounted, storedProgress.totalXp])
 
   useEffect(() => {
@@ -937,28 +956,6 @@ export default function AchievementsPage() {
               <div className="flex items-start justify-between gap-6 flex-wrap">
                 {/* Left: level badge + avatar + info */}
                 <div className="flex items-center gap-4">
-                  {/* Level badge — locked until earned */}
-                  {(() => {
-                    const lvl = rank.globalLevel
-                    const thresholds = [1,11,21,31,41,51,61,71,81,91]
-                    const badgeLevel = [...thresholds].reverse().find(t => lvl >= t) || 1
-                    const isLocked = lvl < 1
-                    return (
-                      <div className="relative shrink-0" style={{ width:72, height:72 }}>
-                        {!isLocked ? (
-                          <iframe
-                            src={`/badges/levels/level-${badgeLevel}.html`}
-                            scrolling="no"
-                            style={{ width:300,height:300,border:"none",background:"transparent",pointerEvents:"none",transform:"scale(0.24)",transformOrigin:"top left",marginBottom:-(300-72),marginRight:-(300-72) }}
-                          />
-                        ) : (
-                          <div className="h-full w-full rounded-2xl border border-white/10 bg-white/[0.03] flex items-center justify-center">
-                            <Lock className="h-6 w-6 text-white/20" />
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })()}
                   {/* Avatar with orbit */}
                   <div className="relative shrink-0">
                     <div className="absolute inset-0 rounded-full border animate-spin" style={{ borderColor: `${rank.tier.color}25`, animationDuration: "8s", margin: -6 }} />
@@ -970,11 +967,27 @@ export default function AchievementsPage() {
                     <p className="text-lg font-bold text-foreground">{session?.fullName || "Volt User"}</p>
                     <p className="text-xs text-muted-foreground uppercase tracking-widest mt-0.5">{session?.role || "employee"}</p>
                     <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                      {/* Tier pill */}
                       <div className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1" style={{ borderColor: `${rank.tier.color}35`, background: `${rank.tier.color}12` }}>
                         <span className="h-1.5 w-1.5 rounded-full" style={{ background: rank.tier.color, boxShadow: `0 0 6px ${rank.tier.color}` }} />
                         <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: rank.tier.color }}>{rank.tier.name} Tier</span>
                       </div>
-                      {/* View Banner button — lives here now */}
+                      {/* Level badge inline — next to tier pill */}
+                      {(() => {
+                        const lvl = rank.globalLevel
+                        const thresholds = [1,11,21,31,41,51,61,71,81,91]
+                        const badgeLevel = [...thresholds].reverse().find(t => lvl >= t) || 1
+                        return (
+                          <div className="relative shrink-0 overflow-hidden" style={{ width:32, height:32 }}>
+                            <iframe
+                              src={`/badges/levels/level-${badgeLevel}.html`}
+                              scrolling="no"
+                              style={{ width:300,height:300,border:"none",background:"transparent",pointerEvents:"none",transform:"scale(0.107)",transformOrigin:"top left",marginBottom:-(300-32),marginRight:-(300-32) }}
+                            />
+                          </div>
+                        )
+                      })()}
+                      {/* View Banner button */}
                       <button
                         onClick={() => setShowBanner(true)}
                         className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition hover:opacity-80"
@@ -1237,7 +1250,7 @@ export default function AchievementsPage() {
                       >
                         <div className="flex items-center gap-3">
                           {/* Badge — no box, just the badge */}
-                          <BadgeImage badge={badge} tierColor={rank.tier.color} size="small" />
+                          <BadgeImage badge={badge} tierColor={rank.tier.color} size="normal" />
 
                           {/* Info */}
                           <div className="flex-1 min-w-0">
