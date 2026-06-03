@@ -573,14 +573,14 @@ function BadgeImage({
       ) : (
         <div
           className="flex h-full w-full items-center justify-center rounded-3xl"
-          style={{ background: badge.unlocked ? `${tierColor}12` : "rgba(255,255,255,0.03)" }}
+          style={{ background: badge.unlocked ? `${tierColor}12` : "rgba(128,128,128,0.08)" }}
         >
-          <Icon style={{ width: px * 0.5, height: px * 0.5, color: badge.unlocked ? tierColor : "rgba(255,255,255,0.3)" }} />
+          <Icon style={{ width: px * 0.5, height: px * 0.5, color: badge.unlocked ? tierColor : "rgba(128,128,128,0.35)" }} />
         </div>
       )}
       {!badge.unlocked && (
-        <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-black/80 z-10">
-          <Lock className="h-3 w-3 text-white/50" />
+        <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-black/80 z-10">
+          <Lock className="h-3 w-3 text-muted-foreground" />
         </div>
       )}
     </div>
@@ -943,7 +943,7 @@ export default function AchievementsPage() {
         <div className="mx-auto max-w-7xl space-y-7">
 
           {/* ── Inline Banner replaces old XP card ── */}
-          <section data-tour="xp-level-card" className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-card/55 shadow-2xl backdrop-blur-xl" style={{ borderColor: `${rank.tier.color}30` }}>
+          <section data-tour="xp-level-card" className="relative overflow-hidden rounded-[2rem] border border-border bg-card/55 shadow-2xl backdrop-blur-xl" style={{ borderColor: `${rank.tier.color}30` }}>
             {/* Ambient glow */}
             <div className="absolute right-0 top-0 h-64 w-64 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: rank.tier.glow, opacity: 0.35 }} />
             <div className="absolute left-0 bottom-0 h-48 w-48 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: rank.tier.glow, opacity: 0.15 }} />
@@ -1036,22 +1036,22 @@ export default function AchievementsPage() {
                   <span>{rank.currentLevelXp} / 100 XP</span>
                   <span>{rank.xpToNextLevel} XP to next level</span>
                 </div>
-                <div className="h-2 rounded-full overflow-hidden bg-white/[0.07]">
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${rank.progressPercent}%`, background: `linear-gradient(90deg, ${rank.tier.color}90, ${rank.tier.color}, #ffffff80)` }} />
+                <div className="h-2 rounded-full overflow-hidden bg-muted/60">
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${rank.progressPercent}%`, background: `linear-gradient(90deg, ${rank.tier.color}90, ${rank.tier.color})` }} />
                 </div>
               </div>
 
               {/* Stats row */}
               <div className="mt-5 grid grid-cols-3 gap-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-center">
+                <div className="rounded-2xl border border-border bg-muted/40 p-3 text-center">
                   <p className="text-[10px] text-muted-foreground">Badges</p>
                   <p className="mt-1 text-xl font-bold">{unlockedBadges.length}/{badges.length}</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-center">
+                <div className="rounded-2xl border border-border bg-muted/40 p-3 text-center">
                   <p className="text-[10px] text-muted-foreground">Tasks Done</p>
                   <p className="mt-1 text-xl font-bold">{stats.tasksCompleted}</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-center">
+                <div className="rounded-2xl border border-border bg-muted/40 p-3 text-center">
                   <p className="text-[10px] text-muted-foreground">Year-end</p>
                   <p className="mt-1 text-sm font-bold truncate">{rank.tier.name} Lv{rank.tierLevel}</p>
                 </div>
@@ -1105,7 +1105,7 @@ export default function AchievementsPage() {
                   return (
                     <div
                       key={item.label}
-                      className="rounded-[1.5rem] border border-white/10 bg-card/50 p-5 shadow-xl backdrop-blur-xl"
+                      className="rounded-[1.5rem] border border-border bg-card/50 p-5 shadow-xl backdrop-blur-xl"
                     >
                       <div
                         className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl"
@@ -1128,7 +1128,7 @@ export default function AchievementsPage() {
               </section>
 
 
-              <section className="rounded-[2rem] border border-white/10 bg-card/50 p-6 shadow-xl backdrop-blur-xl">
+              <section className="rounded-[2rem] border border-border bg-card/50 p-6 shadow-xl backdrop-blur-xl">
                 <style>{`
                   @keyframes sparkFloat{0%,100%{transform:translateY(0) scale(1);opacity:0.7}50%{transform:translateY(-5px) scale(1.1);opacity:1}}
                   @keyframes pulseRing{0%,100%{transform:scale(1);opacity:0.5}50%{transform:scale(1.12);opacity:1}}
@@ -1170,9 +1170,9 @@ export default function AchievementsPage() {
                       <div
                         key={tier.name}
                         className={`relative overflow-hidden rounded-2xl border p-4 transition-all duration-300 ${
-                          active ? "border-white/25 bg-white/10 scale-[1.03]"
-                          : unlocked ? "border-white/15 bg-white/[0.055]"
-                          : "border-white/10 bg-white/[0.025] opacity-50"
+                          active ? "border-border/80 bg-muted/50 scale-[1.03]"
+                          : unlocked ? "border-border bg-muted/50"
+                          : "border-border bg-muted/20 opacity-50"
                         }`}
                         style={{ ["--tc" as string]: tier.color } as React.CSSProperties}
                       >
@@ -1210,7 +1210,7 @@ export default function AchievementsPage() {
                 </div>
               </section>
 
-              <section data-tour="badges-section" className="rounded-[2rem] border border-white/10 bg-card/50 p-6 shadow-xl backdrop-blur-xl">
+              <section data-tour="badges-section" className="rounded-[2rem] border border-border bg-card/50 p-6 shadow-xl backdrop-blur-xl">
                 <div className="mb-5 flex items-center justify-between flex-wrap gap-3">
                   <div>
                     <h2 className="text-2xl font-bold">Badge Collection</h2>
@@ -1223,7 +1223,7 @@ export default function AchievementsPage() {
                         key={f}
                         onClick={() => setBadgeFilter(f === badgeFilter ? "All" : f)}
                         className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
-                          badgeFilter === f ? "border-white/30 bg-white/10 text-white" : "border-white/10 bg-transparent text-muted-foreground hover:border-white/20"
+                          badgeFilter === f ? "border-border bg-muted/50 text-white" : "border-border bg-transparent text-muted-foreground hover:border-white/20"
                         } ${f === "Easy" ? "hover:text-emerald-300" : f === "Medium" ? "hover:text-sky-300" : f === "Hard" ? "hover:text-purple-300" : f === "Legendary" ? "hover:text-amber-300" : ""}`}
                       >
                         {f}
@@ -1243,8 +1243,8 @@ export default function AchievementsPage() {
                         onClick={() => toggleProfileBadge(badge)}
                         className={`group relative rounded-2xl border text-left transition hover:-translate-y-0.5 hover:shadow-lg ${
                           badge.unlocked
-                            ? selected ? "border-white/25 bg-white/[0.07]" : "border-white/12 bg-white/[0.04]"
-                            : "border-white/8 bg-white/[0.02]"
+                            ? selected ? "border-border/80 bg-muted/60" : "border-border bg-muted/40"
+                            : "border-border/50 bg-muted/15"
                         }`}
                         style={{ padding: "10px 12px" }}
                       >
@@ -1258,7 +1258,7 @@ export default function AchievementsPage() {
                               <p className="text-sm font-semibold truncate leading-tight">{badge.name}</p>
                               {badge.unlocked
                                 ? <Award className="h-3.5 w-3.5 shrink-0" style={{ color: rank.tier.color }} />
-                                : <Lock className="h-3.5 w-3.5 shrink-0 text-white/20" />
+                                : <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
                               }
                             </div>
                             <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -1266,7 +1266,7 @@ export default function AchievementsPage() {
                                 {badge.difficulty}
                               </span>
                               <span className="text-[9px] text-muted-foreground">+{badge.xpReward} XP</span>
-                              {selected && <span className="text-[9px] text-white/50">● Featured</span>}
+                              {selected && <span className="text-[9px] text-muted-foreground">● Featured</span>}
                             </div>
                             {/* Progress bar */}
                             <div className="mt-2">
@@ -1274,8 +1274,8 @@ export default function AchievementsPage() {
                                 <span>{Math.min(badge.metric, badge.target)}/{badge.target}</span>
                                 <span>{percent}%</span>
                               </div>
-                              <div className="h-1 rounded-full bg-white/10 overflow-hidden">
-                                <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, backgroundColor: badge.unlocked ? rank.tier.color : "rgba(255,255,255,0.2)" }} />
+                              <div className="h-1 rounded-full bg-muted/50 overflow-hidden">
+                                <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, backgroundColor: badge.unlocked ? rank.tier.color : "rgba(128,128,128,0.25)" }} />
                               </div>
                             </div>
                           </div>

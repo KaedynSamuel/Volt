@@ -67,7 +67,7 @@ function createWindow() {
     `).catch(()=>{})
   })
 
-mainWindow.loadURL(VOLT_URL)
+  mainWindow.loadURL(VOLT_URL)
 
   mainWindow.webContents.setWindowOpenHandler(({url}) => {
     if (!url.startsWith(VOLT_URL)) { shell.openExternal(url); return {action:'deny'} }
