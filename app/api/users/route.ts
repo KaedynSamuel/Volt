@@ -249,3 +249,104 @@ export async function POST(request: Request) {
     )
   }
 }
+export async function DELETE(request: Request) {
+  try {
+    await ensureVoltSchema()
+
+    const companyId = getCompanyId(request)
+    const userId = getUserId(request)
+    const url = new URL(request.url)
+    const targetId = Number(url.searchParams.get("targetId") || 0)
+
+    if (!targetId) {
+      return NextResponse.json({ error: "targetId is required" }, { status: 400 })
+    }
+
+    const pool = await sql.connect(dbConfig)
+    const permission = await requireTeamAdmin(pool, companyId, userId)
+    if (!permission.allowed) return permission.response
+
+    // Soft-delete: mark as deleted instead of removing from DB
+    // This preserves task history, audit logs etc.
+    await pool.request()
+      .input("company_id", sql.Int, companyId)
+      .input("target_id", sql.Int, targetId)
+      .query(`
+        UPDATE dbo.AppUsers
+        SET
+          status = 'deleted',
+          updated_at = GETDATE()
+        WHERE id = @target_id
+          AND company_id = @company_id
+          AND role NOT IN ('business_owner', 'creator')
+      `)
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Failed to delete user:", error)
+    return NextResponse.json(
+      { error: "Failed to delete user", details: getErrorMessage(error) },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    await ensureVoltSchema()
+
+    const companyId = getCompanyId(request)
+    const userId = getUserId(request)
+    const body = await request.json()
+    const targetId = Number(body.targetId || 0)
+
+    if (!targetId) {
+      return NextResponse.json({ error: "targetId is required" }, { status: 400 })
+    }
+
+    const pool = await sql.connect(dbConfig)
+    const permission = await requireTeamAdmin(pool, companyId, userId)
+    if (!permission.allowed) return permission.response
+
+    const updates: string[] = []
+    if (body.fullName) updates.push("full_name = @full_name")
+    if (body.role) updates.push("role = @role")
+    if (body.status) updates.push("status = @status")
+    updates.push("updated_at = GETDATE()")
+
+    const req = pool.request()
+      .input("company_id", sql.Int, companyId)
+      .input("target_id", sql.Int, targetId)
+
+    if (body.fullName) req.input("full_name", sql.NVarChar, String(body.fullName).trim())
+    if (body.role) req.input("role", sql.NVarChar, normalizeRole(body.role))
+    if (body.status) req.input("status", sql.NVarChar, String(body.status))
+
+    const result = await req.query(`
+      UPDATE dbo.AppUsers
+      SET ${updates.join(", ")}
+      OUTPUT
+        inserted.id,
+        inserted.company_id,
+        inserted.full_name,
+        inserted.email,
+        inserted.role,
+        inserted.status,
+        inserted.created_at
+      WHERE id = @target_id
+        AND company_id = @company_id
+    `)
+
+    if (!result.recordset[0]) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(formatUser(result.recordset[0]))
+  } catch (error) {
+    console.error("Failed to update user:", error)
+    return NextResponse.json(
+      { error: "Failed to update user", details: getErrorMessage(error) },
+      { status: 500 }
+    )
+  }
+}

@@ -244,11 +244,14 @@ export default function AdminHubPage() {
       setError("")
       setSuccess("")
 
-      const response = await fetch(`/api/users/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ ...userEditForm, companyId, userId: session?.userId }),
-      })
+      const response = await fetch(
+        `/api/users?companyId=${companyId}&userId=${session?.userId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({ ...userEditForm, targetId: userId }),
+        }
+      )
       const data = await response.json().catch(() => null)
 
       if (!response.ok) throw new Error(data?.details || data?.error || "Failed to update user")
@@ -271,11 +274,10 @@ export default function AdminHubPage() {
       setError("")
       setSuccess("")
 
-      const response = await fetch(`/api/users/${user.id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ companyId, userId: session?.userId }),
-      })
+      const response = await fetch(
+        `/api/users?companyId=${companyId}&userId=${session?.userId}&targetId=${user.id}`,
+        { method: "DELETE", headers: authHeaders() }
+      )
       const data = await response.json().catch(() => null)
 
       if (!response.ok) throw new Error(data?.details || data?.error || "Failed to delete user")

@@ -1130,9 +1130,16 @@ export default function TasksPage() {
           ? new URLSearchParams(window.location.search).get("projectId")
           : "";
 
+      const session = getStoredSession()
+      const userRole = session?.role || "employee"
+      const userId = session?.userId
+
+      // Admins and business owners can see all tasks; regular employees only see their own
+      const isAdmin = userRole === "admin" || userRole === "business_owner"
+
       const taskUrl = urlProjectId
-        ? `/api/tasks?companyId=${companyId}&projectId=${urlProjectId}`
-        : `/api/tasks?companyId=${companyId}`;
+        ? `/api/tasks?companyId=${companyId}&projectId=${urlProjectId}${!isAdmin && userId ? `&userId=${userId}` : ""}`
+        : `/api/tasks?companyId=${companyId}${!isAdmin && userId ? `&userId=${userId}` : ""}`;
 
       const [tasksResponse, membersResponse, projectsResponse] =
         await Promise.all([

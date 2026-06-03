@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import { ArrowRight, Lock, Mail, Loader2, Eye, EyeOff } from "lucide-react"
 import { storeCompany } from "@/lib/tenant"
 import { storeSession } from "@/lib/auth"
-import { VoltIntro } from "@/components/ui/volt-intro"
 
 const REMEMBER_KEY = "volt-remembered-email"
 
@@ -18,7 +17,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [showIntro, setShowIntro] = useState(false)
 
   useEffect(() => {
     // Show intro only once per session
@@ -34,11 +32,6 @@ export default function LoginPage() {
       setRememberMe(true)
     }
   }, [])
-
-  function handleIntroDone() {
-    setShowIntro(false)
-    sessionStorage.setItem("volt-intro-seen", "1")
-  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -79,7 +72,6 @@ export default function LoginPage() {
 
   return (
     <>
-      {showIntro && <VoltIntro onDone={handleIntroDone} />}
 
       <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
         <form onSubmit={handleSubmit} className="glass-card w-full max-w-md p-8 space-y-5">

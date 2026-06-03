@@ -545,7 +545,7 @@ function BadgeImage({
   const animatedSrc = `/badges/animated/${badge.id}.html`
 
   // px = outer container; inner iframe renders at 300px then scales down
-  const px = size === "large" ? 130 : size === "small" ? 70 : 90
+  const px = size === "large" ? 140 : size === "small" ? 80 : 108
   const scale = px / 300
 
   return (

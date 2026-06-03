@@ -43,7 +43,7 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('volt-theme') || 'dark';
+                  var theme = localStorage.getItem('volt-theme') || 'light';
                   var root = document.documentElement;
                   root.classList.remove('dark', 'light');
                   if (theme === 'system') {
@@ -53,7 +53,7 @@ export default function RootLayout({
                     root.classList.add(theme);
                   }
                 } catch(e) {
-                  document.documentElement.classList.add('dark');
+                  document.documentElement.classList.add('light');
                 }
               })();
             `,

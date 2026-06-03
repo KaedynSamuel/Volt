@@ -929,6 +929,12 @@ export default function TeamPage() {
       const newestIncoming = incomingMessages[incomingMessages.length - 1];
       setNewestMessageId(newestIncoming.id);
       setHighlightedWorkspaceTab("chat");
+      // Play chat notification sound
+      try {
+        const audio = new Audio("/sounds/notif-chat.mp3");
+        audio.volume = 0.5;
+        audio.play().catch(() => {});
+      } catch {}
       window.setTimeout(() => {
         setHighlightedWorkspaceTab(null);
         setNewestMessageId(null);
@@ -1658,7 +1664,7 @@ export default function TeamPage() {
         )}
 
         <div className="space-y-3">
-          <section className="glass-card overflow-hidden p-2.5">
+          <section className="glass-card p-2.5" style={{ overflow: "visible", zIndex: 80, position: "relative" }}>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               {selectedTeam && (
                 <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-2">
@@ -2196,7 +2202,7 @@ export default function TeamPage() {
                                     <div
                                       key={file.id}
                                       onClick={() => setSelectedFileId(file.id)}
-                                      className={`grid cursor-pointer grid-cols-[minmax(0,1.5fr)_120px_88px_92px] items-center gap-2 px-2.5 py-1.5 text-xs transition hover:bg-primary/[0.04] ${selectedFileId === file.id ? "bg-primary/10 ring-1 ring-primary/20" : ""}`}
+                                      className={`grid cursor-pointer grid-cols-[minmax(0,1fr)_100px_80px_88px] items-center gap-3 px-3 py-2 text-xs transition hover:bg-primary/[0.04] ${selectedFileId === file.id ? "bg-primary/10 ring-1 ring-primary/20" : ""}`}
                                     >
                                       <div className="flex min-w-0 items-center gap-3">
                                         {renderFileThumb(file, "h-9 w-9")}
