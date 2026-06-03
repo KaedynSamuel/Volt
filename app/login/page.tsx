@@ -19,12 +19,6 @@ export default function LoginPage() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    // Show intro only once per session
-    const introSeen = sessionStorage.getItem("volt-intro-seen")
-    if (!introSeen) {
-      setShowIntro(true)
-    }
-
     // Restore remembered email
     const remembered = localStorage.getItem(REMEMBER_KEY)
     if (remembered) {
