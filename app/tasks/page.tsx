@@ -1134,8 +1134,8 @@ export default function TasksPage() {
       const userId = session?.userId
 
       const taskUrl = urlProjectId
-        ? `/api/tasks?companyId=${companyId}&projectId=${urlProjectId}${userId ? `&userId=${userId}` : ""}`
-        : `/api/tasks?companyId=${companyId}${userId ? `&userId=${userId}` : ""}`;
+        ? `/api/tasks?companyId=${companyId}&projectId=${urlProjectId}${userId ? `&userId=${userId}&createdBy=${userId}` : ""}`
+        : `/api/tasks?companyId=${companyId}${userId ? `&userId=${userId}&createdBy=${userId}` : ""}`;
 
       const [tasksResponse, membersResponse, projectsResponse] =
         await Promise.all([

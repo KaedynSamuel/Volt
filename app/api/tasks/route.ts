@@ -493,6 +493,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const projectId = Number(url.searchParams.get("projectId") || 0)
     const userId = Number(url.searchParams.get("userId") || 0)
+    const createdBy = Number(url.searchParams.get("createdBy") || 0)
     const scope = String(url.searchParams.get("scope") || "")
       .trim()
       .toLowerCase()
@@ -512,6 +513,7 @@ export async function GET(request: Request) {
       .input("company_id", sql.Int, companyId)
       .input("project_id", sql.Int, projectId || null)
       .input("user_id", sql.Int, userId || null)
+      .input("created_by", sql.Int, createdBy || null)
       .input("scope", sql.NVarChar(30), scope || null)
       .query(`
         SELECT
@@ -597,6 +599,8 @@ export async function GET(request: Request) {
             @user_id IS NULL
             OR @scope IN ('all', 'created', 'assigned', 'blocked', 'overdue')
             OR t.assigned_to_user_id = @user_id
+            OR t.created_by_user_id = @user_id
+            OR t.created_by_user_id = @created_by
             OR EXISTS (
               SELECT 1
               FROM dbo.TaskAssignees ta
