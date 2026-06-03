@@ -579,7 +579,7 @@ function BadgeImage({
         </div>
       )}
       {!badge.unlocked && (
-        <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-black/80 z-10">
+        <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background z-10">
           <Lock className="h-3 w-3 text-muted-foreground" />
         </div>
       )}
@@ -1022,7 +1022,7 @@ export default function AchievementsPage() {
                           <iframe src={`/badges/animated/${b.id}.html`} scrolling="no" style={{ width:300,height:300,border:"none",background:"transparent",pointerEvents:"none",transform:"scale(0.187)",transformOrigin:"top left",marginBottom:-(300-56),marginRight:-(300-56) }} />
                         </>
                       ) : (
-                        <div className="h-full w-full rounded-xl border flex items-center justify-center text-lg" style={{ borderColor: `${rank.tier.color}15`, background: `${rank.tier.color}05`, color: `${rank.tier.color}25` }}>+</div>
+                        <div className="h-full w-full rounded-xl border flex items-center justify-center text-lg" style={{ borderColor: `${rank.tier.color}15`, background: `${rank.tier.color}05`, color: `${rank.tier.color}40` }}>+</div>
                       )}
                     </div>
                   )
@@ -1183,7 +1183,7 @@ export default function AchievementsPage() {
 
                         {/* Particle dots for special tiers */}
                         {ts.particles && active && [0,1,2].map(p => (
-                          <div key={p} className="absolute rounded-full pointer-events-none" style={{ width:3,height:3,background:tier.color,boxShadow:`0 0 6px ${tier.color}`,top:`${20+p*25}%`,right:`${10+p*15}%`,animation:`sparkFloat ${1.5+p*0.4}s ease-in-out infinite`,animationDelay:`${p*0.3}s` }} />
+                          <div key={p} className="absolute rounded-full pointer-events-none" style={{ width:3,height:3,background:tier.color,top:`${20+p*25}%`,right:`${10+p*15}%`,animation:`sparkFloat ${1.5+p*0.4}s ease-in-out infinite`,animationDelay:`${p*0.3}s` }} />
                         ))}
 
                         <div className="relative">
@@ -1223,7 +1223,7 @@ export default function AchievementsPage() {
                         key={f}
                         onClick={() => setBadgeFilter(f === badgeFilter ? "All" : f)}
                         className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
-                          badgeFilter === f ? "border-border bg-muted/50 text-white" : "border-border bg-transparent text-muted-foreground hover:border-white/20"
+                          badgeFilter === f ? "border-border bg-muted/50 text-foreground" : "border-border bg-transparent text-muted-foreground hover:border-border"
                         } ${f === "Easy" ? "hover:text-emerald-300" : f === "Medium" ? "hover:text-sky-300" : f === "Hard" ? "hover:text-purple-300" : f === "Legendary" ? "hover:text-amber-300" : ""}`}
                       >
                         {f}

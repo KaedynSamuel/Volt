@@ -596,8 +596,9 @@ export async function GET(request: Request) {
             )
           )
           AND (
-            @user_id IS NULL
-            OR @scope IN ('all', 'created', 'assigned', 'blocked', 'overdue')
+            -- No user filter = return all (company dashboard uses this)
+            (@user_id IS NULL AND @created_by IS NULL)
+            -- With user filter = only this user's tasks
             OR t.assigned_to_user_id = @user_id
             OR t.created_by_user_id = @user_id
             OR t.created_by_user_id = @created_by
