@@ -1909,50 +1909,48 @@ export default function TasksPage() {
     });
   }, [tasks, activeTab, activeScope, selectedProjectId, sortBy]);
 
+  const isMyTask = (task: Task) => {
+    const currentUserId = session?.userId ? String(session.userId) : null;
+    if (!currentUserId) return true;
+    const assignmentType = getTaskText(task, "assignmentType");
+    const assignedUserIds = getAssignedUserIds(task, teamMembers);
+    const assignedToUserId = getTaskNumber(task, "assignedToUserId");
+    const createdByUserId = getTaskText(task, "createdByUserId");
+    const isPersonalOwnedByMe =
+      assignmentType === "personal" &&
+      (assignedUserIds.includes(currentUserId) ||
+        (assignedToUserId !== null && String(assignedToUserId) === currentUserId) ||
+        (createdByUserId && String(createdByUserId) === currentUserId));
+    const isAssignedToMe =
+      assignmentType !== "personal" &&
+      (assignedUserIds.includes(currentUserId) ||
+        (assignedToUserId !== null && String(assignedToUserId) === currentUserId));
+    return isPersonalOwnedByMe || isAssignedToMe;
+  };
+
   const getTabCount = (filter: BoardFilter) => {
     return tasks.filter((task) => {
-      if (isTaskDeleted(task)) {
-        return false;
-      }
-
-      if (selectedProjectId && getTaskText(task, "projectId") !== selectedProjectId) {
-        return false;
-      }
-
+      if (isTaskDeleted(task)) return false;
+      if (!isMyTask(task)) return false;
+      if (selectedProjectId && getTaskText(task, "projectId") !== selectedProjectId) return false;
       if (filter === "blocked") {
-        // Blocked tasks: must be in current scope (or status blocked) AND blocked
-        return (
-          task.status === "blocked" || Boolean(getTaskValue(task, "isBlocked"))
-        ) && (task.status === activeScope || task.status === "blocked");
+        return (task.status === "blocked" || Boolean(getTaskValue(task, "isBlocked")))
+          && (task.status === activeScope || task.status === "blocked");
       }
-
-      // All other filters: task must be in the current scope tab
-      if (task.status !== activeScope) {
-        return false;
-      }
-
+      if (task.status !== activeScope) return false;
       if (filter !== "all") {
         const priority = getTaskText(task, "priority") || "medium";
-
-        if (priority !== filter) {
-          return false;
-        }
+        if (priority !== filter) return false;
       }
-
       return true;
     }).length;
   };
 
   const getStageCount = (status: TaskScopeFilter) => {
     return tasks.filter((task) => {
-      if (isTaskDeleted(task)) {
-        return false;
-      }
-
-      if (selectedProjectId && getTaskText(task, "projectId") !== selectedProjectId) {
-        return false;
-      }
-
+      if (isTaskDeleted(task)) return false;
+      if (!isMyTask(task)) return false;
+      if (selectedProjectId && getTaskText(task, "projectId") !== selectedProjectId) return false;
       return task.status === status;
     }).length;
   };
