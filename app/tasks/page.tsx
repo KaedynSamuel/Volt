@@ -1067,6 +1067,20 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  // Auto-dismiss errors and success messages after 4 seconds
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(""), 4000);
+    return () => clearTimeout(t);
+  }, [error]);
+
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(() => setSuccess(""), 4000);
+    return () => clearTimeout(t);
+  }, [success]);
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [newTask, setNewTask] = useState<NewTaskForm>(emptyForm);
   const [mounted, setMounted] = useState(false);
@@ -1345,9 +1359,8 @@ export default function TasksPage() {
         },
         body: JSON.stringify({
           id: task.id,
-          isDeleted: true,
-          deleted: true,
-          deletedAt: new Date().toISOString(),
+          action: "delete",
+          userId: getStoredSession()?.userId,
         }),
       });
 

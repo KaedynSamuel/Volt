@@ -112,7 +112,7 @@ export function Sidebar({ companyName = "Volt", dashboardName = "Volt Dashboards
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {visibleNavItems.map((item) => {
           const isActive = pathname === item.href
           return (
@@ -120,14 +120,14 @@ export function Sidebar({ companyName = "Volt", dashboardName = "Volt Dashboards
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                "hover:bg-sidebar-accent",
+                "flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                "hover:text-foreground hover:border-l-2 hover:border-primary/40",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-muted-foreground hover:text-sidebar-foreground"
+                  ? "text-primary border-l-2 border-primary font-semibold"
+                  : "text-muted-foreground border-l-2 border-transparent"
               )}
             >
-              <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
+              <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
 
               <div className={cn(
                 "flex flex-1 items-center justify-between transition-all duration-300 overflow-hidden",
@@ -135,7 +135,7 @@ export function Sidebar({ companyName = "Volt", dashboardName = "Volt Dashboards
               )}>
                 <span className="whitespace-nowrap">{item.title}</span>
                 {item.badge && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-gradient-to-r from-primary to-accent text-primary-foreground whitespace-nowrap">
+                  <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-sm bg-primary/15 text-primary whitespace-nowrap">
                     {item.badge}
                   </span>
                 )}
@@ -154,14 +154,14 @@ export function Sidebar({ companyName = "Volt", dashboardName = "Volt Dashboards
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                "hover:bg-sidebar-accent",
+                "flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                "hover:text-foreground hover:border-l-2 hover:border-primary/40",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-muted-foreground hover:text-sidebar-foreground"
+                  ? "text-primary border-l-2 border-primary font-semibold"
+                  : "text-muted-foreground border-l-2 border-transparent"
               )}
             >
-              <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
+              <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
               <span className={cn(
                 "whitespace-nowrap transition-all duration-300 overflow-hidden",
                 expanded ? "opacity-100 w-auto" : "opacity-0 w-0"
