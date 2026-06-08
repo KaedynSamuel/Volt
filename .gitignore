@@ -16,3 +16,5 @@ node_modules
 .DS_Storenode_modules/
 .next/
 dist/
+*.zip
+Versions/
