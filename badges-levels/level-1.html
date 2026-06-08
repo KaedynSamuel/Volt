@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  html{background:transparent;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{width:300px;height:300px;background:transparent;display:flex;align-items:center;justify-content:center;}
+  .badge{
+    width:260px;height:260px;position:relative;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border-radius:52px;
+    background:radial-gradient(ellipse at 40% 25%,#0a1a0a 0%,#050f05 60%,#020202 100%);
+    border:1.5px solid rgba(34,197,94,0.5);
+    box-shadow:0 0 0 1px rgba(0,0,0,0.9),0 0 50px rgba(34,197,94,0.28),0 0 100px rgba(34,197,94,0.12),inset 0 1px 0 rgba(34,197,94,0.25),inset 0 0 80px rgba(34,197,94,0.05);
+    overflow:hidden;
+  }
+  .hex{position:absolute;inset:0;opacity:0.04;background-image:repeating-linear-gradient(0deg,rgba(34,197,94,1) 0,transparent 1px,transparent 18px),repeating-linear-gradient(60deg,rgba(34,197,94,1) 0,transparent 1px,transparent 18px),repeating-linear-gradient(120deg,rgba(34,197,94,1) 0,transparent 1px,transparent 18px);animation:hexPulse 3s ease-in-out infinite;}
+  @keyframes hexPulse{0%,100%{opacity:0.04}50%{opacity:0.09}}
+  .cone{position:absolute;top:0;left:50%;transform:translateX(-50%);width:0;height:0;border-left:55px solid transparent;border-right:55px solid transparent;border-top:160px solid rgba(34,197,94,0.08);filter:blur(8px);animation:conePulse 2.5s ease-in-out infinite;}
+  @keyframes conePulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .glow-orb{position:absolute;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(34,197,94,0.12) 0%,transparent 65%);top:50%;left:50%;transform:translate(-50%,-58%);animation:orbPulse 2s ease-in-out infinite;}
+  @keyframes orbPulse{0%,100%{transform:translate(-50%,-58%) scale(1);opacity:1}50%{transform:translate(-50%,-58%) scale(1.1);opacity:0.7}}
+  .orbit{position:absolute;border-radius:50%;top:50%;left:50%;}
+  .o1{width:162px;height:162px;border:1px solid rgba(34,197,94,0.18);animation:spin1 8s linear infinite;}
+  .o2{width:130px;height:130px;border:1px solid rgba(34,197,94,0.12);animation:spin2 7s linear infinite;}
+  .o3{width:100px;height:100px;border:1px solid rgba(34,197,94,0.08);animation:spin3 6s linear infinite;}
+  @keyframes spin1{from{transform:translate(-50%,-55%) rotate(0deg)}to{transform:translate(-50%,-55%) rotate(360deg)}}
+  @keyframes spin2{from{transform:translate(-50%,-55%) rotate(0deg)}to{transform:translate(-50%,-55%) rotate(-360deg)}}
+  @keyframes spin3{from{transform:translate(-50%,-55%) rotate(45deg)}to{transform:translate(-50%,-55%) rotate(405deg)}}
+  .od{position:absolute;border-radius:50%;top:-3px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,0.9);box-shadow:0 0 12px rgba(34,197,94,1),0 0 24px rgba(34,197,94,0.5);}
+  .od{width:6px;height:6px;}
+  .od2{width:4px;height:4px;top:-2px;opacity:0.7;}
+  .od3{width:3px;height:3px;top:-1.5px;opacity:0.5;}
+  .ring{position:absolute;border-radius:50%;bottom:24px;left:50%;transform:translateX(-50%);}
+  .r1{width:70px;height:15px;border:2px solid rgba(34,197,94,0.55);}
+  .r2{width:110px;height:26px;border:1px solid rgba(34,197,94,0.28);}
+  .r3{width:155px;height:38px;border:1px solid rgba(34,197,94,0.12);}
+  .rg{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);width:70px;height:8px;border-radius:50%;background:rgba(34,197,94,0.25);filter:blur(4px);}
+  .icon-w{position:relative;z-index:2;width:118px;height:118px;margin-bottom:4px;animation:iconFloat 3s ease-in-out infinite;filter:drop-shadow(0 0 14px rgba(34,197,94,1)) drop-shadow(0 0 30px rgba(34,197,94,.75)) drop-shadow(0 0 60px rgba(34,197,94,.45)) drop-shadow(0 0 100px rgba(34,197,94,.2));}
+  @keyframes iconFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-5px) scale(1.02)}}
+  .icon-w svg{width:100%;height:100%;}
+  .level-pill{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,0.14);border:1px solid rgba(34,197,94,0.45);border-radius:20px;padding:3px 12px;z-index:3;font-family:'Courier New',monospace;font-size:8px;font-weight:700;color:rgba(34,197,94,0.95);letter-spacing:0.25em;text-transform:uppercase;white-space:nowrap;animation:pillGlow 2s ease-in-out infinite;}
+  @keyframes pillGlow{0%,100%{box-shadow:0 0 8px rgba(34,197,94,0.2)}50%{box-shadow:0 0 16px rgba(34,197,94,0.5)}}
+  .txt{position:relative;z-index:2;text-align:center;}
+  .lvl-range{font-family:'Courier New',monospace;font-size:9px;font-weight:700;color:rgba(34,197,94,0.45);letter-spacing:0.25em;margin-bottom:2px;}
+  .title{font-family:'Courier New',monospace;font-size:16px;font-weight:900;color:#22c55e;letter-spacing:0.14em;text-transform:uppercase;animation:titleGlow 2s ease-in-out infinite;}
+  @keyframes titleGlow{0%,100%{text-shadow:0 0 10px rgba(34,197,94,1),0 0 22px rgba(34,197,94,.65),0 0 40px rgba(34,197,94,.35)}50%{text-shadow:0 0 18px rgba(34,197,94,1),0 0 40px rgba(34,197,94,.85),0 0 70px rgba(34,197,94,.55)}}
+  .divl{width:50px;height:1px;background:linear-gradient(90deg,transparent,rgba(34,197,94,0.55),transparent);margin:4px auto;}
+  .sub{font-family:'Courier New',monospace;font-size:7px;color:rgba(34,197,94,0.35);letter-spacing:0.12em;text-transform:uppercase;max-width:160px;text-align:center;}
+  .corner{position:absolute;width:20px;height:20px;}
+  .ctl{top:11px;left:11px;border-top:2px solid rgba(34,197,94,0.7);border-left:2px solid rgba(34,197,94,0.7);}
+  .ctr{top:11px;right:11px;border-top:2px solid rgba(34,197,94,0.7);border-right:2px solid rgba(34,197,94,0.7);}
+  .cbl{bottom:11px;left:11px;border-bottom:2px solid rgba(34,197,94,0.7);border-left:2px solid rgba(34,197,94,0.7);}
+  .cbr{bottom:11px;right:11px;border-bottom:2px solid rgba(34,197,94,0.7);border-right:2px solid rgba(34,197,94,0.7);}
+  .cdot{position:absolute;width:5px;height:5px;border-radius:50%;background:rgba(34,197,94,0.8);box-shadow:0 0 8px rgba(34,197,94,1);animation:dotBlink 2s ease-in-out infinite;}
+  @keyframes dotBlink{0%,100%{opacity:0.5}50%{opacity:1}}
+  .cdtl{top:9px;left:9px;}.cdtr{top:9px;right:9px;}.cdbl{bottom:9px;left:9px;}.cdbr{bottom:9px;right:9px;}
+  .shimmer{position:absolute;top:0;left:-100%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(34,197,94,0.07),transparent);animation:shimSweep 4s ease-in-out infinite;}
+  @keyframes shimSweep{0%{left:-60%}100%{left:160%}}
+  .spark{position:absolute;animation:spk 2s ease-in-out infinite;}
+  @keyframes spk{0%,100%{opacity:0;transform:scale(0.5)}50%{opacity:1;transform:scale(1.2)}}
+  .sp1{top:34px;left:32px;animation-delay:0s;}
+  .sp2{top:28px;right:36px;animation-delay:0.7s;}
+  .sp3{top:70px;left:20px;animation-delay:1.4s;}
+  .sp4{top:62px;right:22px;animation-delay:0.4s;}
+</style>
+</head>
+<body>
+<div class="badge">
+  <div class="hex"></div><div class="cone"></div><div class="glow-orb"></div>
+  <div class="orbit o1"><div class="od"></div></div>
+  <div class="corner ctl"></div><div class="corner ctr"></div>
+  <div class="corner cbl"></div><div class="corner cbr"></div>
+  <div class="cdot cdtl"></div><div class="cdot cdtr"></div>
+  <div class="cdot cdbl"></div><div class="cdot cdbr"></div>
+  <div class="shimmer"></div>
+  <div class="level-pill">⚡ level 1–10</div>
+  <div class="spark sp1"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="rgba(34,197,94,0.85)"/></svg></div>
+  <div class="spark sp2"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="rgba(34,197,94,0.7)"/></svg></div>
+  <div class="spark sp3"><svg width="7" height="7" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="rgba(34,197,94,0.6)"/></svg></div>
+  <div class="spark sp4"><svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0L5.8 4.2L10 5L5.8 5.8L5 10L4.2 5.8L0 5L4.2 4.2Z" fill="rgba(34,197,94,0.7)"/></svg></div>
+  <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="rg"></div>
+  <div class="icon-w">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="lg" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="rgba(34,197,94,1)"/>
+          <stop offset="100%" stop-color="#22c55e"/>
+        </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="8" fill="url(#lg)"/><path d="M50 22 L50 42" stroke="url(#lg)" stroke-width="2.5" stroke-linecap="round"/><path d="M50 58 L50 78" stroke="url(#lg)" stroke-width="2.5" stroke-linecap="round"/><path d="M22 50 L42 50" stroke="url(#lg)" stroke-width="2.5" stroke-linecap="round"/><path d="M58 50 L78 50" stroke="url(#lg)" stroke-width="2.5" stroke-linecap="round"/><circle cx="50" cy="50" r="20" stroke="url(#lg)" stroke-width="1.5" fill="none" opacity="0.4"/>
+    </svg>
+  </div>
+  <div class="txt">
+    <div class="lvl-range">— levels 1–10 —</div>
+    <div class="title">Initiate</div>
+    <div class="divl"></div>
+    <div class="sub">First steps into the Volt system</div>
+  </div>
+</div>
+
+<script>
+if(window.self !== window.top){
+  var b = document.querySelector('.badge');
+  if(b){b.style.background='transparent';b.style.boxShadow='none';b.style.border='none';}
+  document.body.style.background='transparent';
+  document.documentElement.style.background='transparent';
+}
+</script>
+</body>
+</html>

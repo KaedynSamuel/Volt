@@ -1,0 +1,94 @@
+name: Build Volt
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+
+  deploy-azure:
+    name: Deploy to Azure App Service
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps --ignore-scripts
+
+      - name: Build Next.js app
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Zip for deployment
+        run: |
+          zip -r deploy.zip . \
+            --exclude "*.git*" \
+            --exclude "electron/*" \
+            --exclude "assets/*" \
+            --exclude "dist/*" \
+            --exclude "*.md" \
+            --exclude "node_modules/.cache/*"
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: VoltApp
+          package: deploy.zip
+
+  build-electron:
+    name: Build Windows Desktop App
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache Electron binary
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            electron-cache-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+        env:
+          ELECTRON_GET_USE_PROXY: false
+          GLOBAL_AGENT_NO_PROXY: "*"
+
+      - name: Build Electron app
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload exe as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Volt-Windows
+          path: dist/*.exe
+          retention-days: 30
