@@ -80,7 +80,7 @@ export function Sidebar({ companyName = "Volt", dashboardName = "Volt Dashboards
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        "glass-panel h-screen flex flex-col transition-all duration-300 ease-in-out z-50",
+        "glass-panel h-screen flex flex-col transition-all duration-300 ease-in-out z-50 overflow-x-visible",
         expanded ? "w-64" : "w-16"
       )}
     >
@@ -112,7 +112,7 @@ export function Sidebar({ companyName = "Volt", dashboardName = "Volt Dashboards
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto overflow-x-visible">
         {visibleNavItems.map((item) => {
           const isActive = pathname === item.href
           return (
