@@ -623,6 +623,10 @@ export default function AchievementsPage() {
   const [badgeFilter, setBadgeFilter] = useState<"All"|"Easy"|"Medium"|"Hard"|"Legendary">("All")
   const prevLevelRef = React.useRef<number | null>(null)
   const prevTierRef = React.useRef<string | null>(null)
+  // Guard: prevents the level-up animation from firing on initial page load.
+  // Only set to true after the first XP baseline read, so the animation only
+  // triggers on a genuine XP increase during the same session.
+  const initialCheckDoneRef = React.useRef(false)
 
   useEffect(() => {
     setMounted(true)
@@ -695,6 +699,22 @@ export default function AchievementsPage() {
       prevLevelRef.current = currentLevel
       prevTierRef.current = currentTier
       prevXpRef.current = currentXp
+      initialCheckDoneRef.current = true
+      return
+    }
+
+    // On the very first time this effect runs after mount (initial page load),
+    // just record the baseline without playing any animation — even if the
+    // stored XP happens to differ from in-memory state due to a race between
+    // the syncProgress effect and this one.
+    if (!initialCheckDoneRef.current) {
+      prevLevelRef.current = currentLevel
+      prevTierRef.current = currentTier
+      prevXpRef.current = currentXp
+      initialCheckDoneRef.current = true
+      // Update stored baseline to match current reality
+      localStorage.setItem(lsKey, String(currentLevel))
+      localStorage.setItem(lsXpKey, String(currentXp))
       return
     }
 

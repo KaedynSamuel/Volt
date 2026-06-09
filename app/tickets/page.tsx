@@ -18,6 +18,7 @@ import { getStoredSession } from "@/lib/auth"
 import {
   AlertCircle,
   ArrowRight,
+  Bell,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -547,12 +548,22 @@ function getTicketRowKey(ticket: TicketRecord) {
   return String(ticket.dbId ?? ticket.id)
 }
 
-function ticketBelongsToUser(ticket: TicketRecord, _session: any, scope: TicketScope) {
-  if (scope === "closed") {
-    return isTicketCompleted(ticket)
-  }
+function ticketBelongsToUser(ticket: TicketRecord, session: any, scope: TicketScope) {
+  const userId = session?.userId ? Number(session.userId) : null
+  const isCompleted = isTicketCompleted(ticket)
 
-  return !isTicketCompleted(ticket)
+  // Scope filter: open tab shows active tickets, closed tab shows completed ones
+  if (scope === "closed" && !isCompleted) return false
+  if (scope === "open" && isCompleted) return false
+
+  // If we can't identify the user, show nothing (privacy-safe default)
+  if (!userId) return false
+
+  // Only show tickets where this user is the reporter (sender) OR the assignee
+  const assigneeId = ticket.assigneeUserId ? Number(ticket.assigneeUserId) : null
+  const reporterId = ticket.reporterUserId ? Number(ticket.reporterUserId) : null
+
+  return assigneeId === userId || reporterId === userId
 }
 function getTicketXp(ticket: TicketRecord) {
   if (ticket.priority === "critical") return 90
@@ -605,6 +616,8 @@ export default function TicketsPage() {
   const [showOverduePanel, setShowOverduePanel] = useState(false)
   const [listMotion, setListMotion] = useState<"left" | "right" | null>(null)
   const [listMotionKey, setListMotionKey] = useState(0)
+  // Track which ticket IDs have had a reminder sent (to show feedback)
+  const [remindedTicketIds, setRemindedTicketIds] = useState<Set<string>>(new Set())
 
   const session = typeof window !== "undefined" ? (getStoredSession() as any) : null
   const selectedAssignee = teamMembers.find(
@@ -912,6 +925,48 @@ export default function TicketsPage() {
           ? error.message
           : "Ticket status could not be updated.",
       )
+    }
+  }
+
+  /**
+   * Send a reminder email to the assignee of a ticket.
+   * Only the reporter (the person who sent the ticket) can do this.
+   */
+  async function handleRemind(ticket: TicketRecord) {
+    const ticketKey = getTicketRowKey(ticket)
+    const activeSession = typeof window !== "undefined" ? (getStoredSession() as any) : null
+    const companyId = activeSession?.companyId || getStoredCompanyId()
+
+    // Guard: only the reporter can remind
+    const reporterId = ticket.reporterUserId ? Number(ticket.reporterUserId) : null
+    const myId = activeSession?.userId ? Number(activeSession.userId) : null
+    if (!reporterId || reporterId !== myId) return
+
+    // Don't spam — disable after first send until page refresh
+    if (remindedTicketIds.has(ticketKey)) return
+
+    try {
+      const assigneeName = getAssigneeName(ticket)
+      const reporterName = activeSession?.fullName || "Someone"
+      await fetch("/api/emailv/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-company-id": String(companyId || ""),
+          "x-user-id": String(activeSession?.userId || ""),
+        },
+        body: JSON.stringify({
+          to: ticket.assignee?.email ? [ticket.assignee.email] : [],
+          subject: `Reminder: Ticket "${ticket.title}"`,
+          body: `Hi ${assigneeName},\n\nThis is a friendly reminder from ${reporterName} about the ticket "${ticket.title}" (${ticket.id}).\n\nCurrent status: ${ticket.status}\n\nPlease take a look when you get a chance.\n\nThanks!`,
+          priority: "normal",
+          senderUserId: activeSession?.userId,
+          companyId,
+        }),
+      })
+      setRemindedTicketIds((prev) => new Set(prev).add(ticketKey))
+    } catch {
+      // Silently ignore — not critical
     }
   }
 
@@ -2089,6 +2144,31 @@ export default function TicketsPage() {
                           <CheckCircle2 className="ml-1.5 h-3.5 w-3.5 transition group-hover:scale-110" />
                         </Button>
                       )}
+
+                      {/* Remind button — only the reporter can send a reminder, and only on open tickets */}
+                      {!isTicketCompleted(ticket) &&
+                        session?.userId &&
+                        ticket.reporterUserId &&
+                        Number(ticket.reporterUserId) === Number(session.userId) &&
+                        ticket.assignee?.email && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleRemind(ticket)}
+                            disabled={remindedTicketIds.has(getTicketRowKey(ticket))}
+                            className={cn(
+                              actionButtonMotion,
+                              "h-8 rounded-lg border-border/60 bg-muted/30 px-3 text-xs text-muted-foreground hover:bg-muted/50",
+                              remindedTicketIds.has(getTicketRowKey(ticket)) && "opacity-50 cursor-not-allowed",
+                            )}
+                          >
+                            {remindedTicketIds.has(getTicketRowKey(ticket)) ? (
+                              <>Reminded <Check className="ml-1.5 h-3.5 w-3.5" /></>
+                            ) : (
+                              <>Remind <Bell className="ml-1.5 h-3.5 w-3.5" /></>
+                            )}
+                          </Button>
+                        )}
 
                       {isTicketCompleted(ticket) && (
                         <div className="flex h-8 items-center justify-center rounded-lg border border-border bg-background/70 px-3 text-xs font-bold text-muted-foreground">
