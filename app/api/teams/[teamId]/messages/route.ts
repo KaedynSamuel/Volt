@@ -18,7 +18,7 @@ async function canOpenTeam(pool: sql.ConnectionPool, teamId: number, companyId: 
     .query(`
       SELECT TOP 1 u.role, t.security_key
       FROM dbo.Teams t
-      INNER JOIN dbo.AppUsers u ON u.company_id = t.company_id AND u.id = @user_id
+      INNER JOIN dbo.AppUsers u ON u.company_id = t.company_id AND u.id = @user_id AND u.status = 'active'
       WHERE t.id = @team_id AND t.company_id = @company_id AND t.status = 'active'
         AND (u.role IN ('admin','creator') OR EXISTS (SELECT 1 FROM dbo.TeamMembers tm WHERE tm.team_id = t.id AND tm.user_id = @user_id))
     `)
@@ -40,9 +40,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ team
       .input("team_id", sql.Int, teamId)
       .input("company_id", sql.Int, companyId)
       .query(`
-        SELECT TOP 100 m.id, m.team_id, m.sender_user_id, COALESCE(u.full_name, 'Unknown User') AS sender_name, m.encrypted_body, m.iv, m.created_at
+        SELECT TOP 100 m.id, m.team_id, m.sender_user_id, u.full_name AS sender_name, m.encrypted_body, m.iv, m.created_at
         FROM dbo.TeamMessages m
-        LEFT JOIN dbo.AppUsers u ON u.id = m.sender_user_id
+        INNER JOIN dbo.AppUsers u ON u.id = m.sender_user_id
         WHERE m.team_id = @team_id AND m.company_id = @company_id
         ORDER BY m.created_at ASC
       `)
@@ -62,9 +62,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
     const body = await request.json()
     const companyId = getCompanyId(request, body)
     const userId = getUserId(request, body)
-    const encryptedBody = String(body.encryptedBody || "")
+    // Support both encrypted messages (encryptedBody + iv) and plain-text messages from mobile
+    const encryptedBody = String(body.encryptedBody || body.body || body.message || body.text || "")
     const iv = String(body.iv || "")
-    if (!teamId || !companyId || !userId || !encryptedBody || !iv) return NextResponse.json({ error: "Missing encrypted message data" }, { status: 400 })
+    if (!teamId || !companyId || !userId || !encryptedBody) return NextResponse.json({ error: "Missing message data" }, { status: 400 })
     const pool = await getDbPool()
     const access = await canOpenTeam(pool, teamId, companyId, userId)
     if (!access) return NextResponse.json({ error: "You are not a member of this team" }, { status: 403 })

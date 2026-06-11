@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import Image from "next/image"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { cn } from "@/lib/utils"
+import { getStoredSession } from "@/lib/auth"
 import {
   Send,
   Plus,
@@ -30,6 +31,8 @@ type Message = {
   content: string
   ts: Date
   loading?: boolean
+  aiPowered?: boolean
+  action?: boolean
 }
 
 type Conversation = {
@@ -41,13 +44,13 @@ type Conversation = {
 
 /* ─────────────────────────────── constants ── */
 const WELCOME =
-  "Hey! I'm **Volty** ⚡ — your Volt AI assistant.\n\nI can help you with:\n- Overdue tasks\n- Open tickets\n- High-priority work\n- What to focus on today\n\nJust ask me anything about your workspace."
+  "Hey! I'm **Volty** ⚡ — your Volt AI assistant.\n\nI can **read your data**, **take action**, and **answer questions** about your work.\n\nTry asking:\n- *\"What are my overdue tasks?\"*\n- *\"Create a ticket called Server Down urgent\"*\n- *\"Complete task called Weekly Report\"*\n- *\"What should I focus on today?\"*\n\nType **help** to see everything I can do."
 
 const SUGGESTIONS = [
   { icon: CheckSquare, label: "What are my overdue tasks?", short: "Overdue tasks" },
-  { icon: Ticket, label: "Show me open tickets", short: "Open tickets" },
+  { icon: Ticket, label: "Create a ticket called Test Issue urgent", short: "Create ticket" },
   { icon: BarChart3, label: "What should I focus on today?", short: "Today's focus" },
-  { icon: Zap, label: "Show high priority tasks", short: "High priority" },
+  { icon: Zap, label: "Show my high priority tasks", short: "High priority" },
 ]
 
 const VOLTY_IMGS = [
@@ -192,6 +195,12 @@ function MessageBubble({
             <span className="text-[10px] text-muted-foreground pr-1">
               {msg.ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
+            {msg.aiPowered && (
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">⚡ AI</span>
+            )}
+            {msg.action && (
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">✓ Done</span>
+            )}
             <button
               type="button"
               onClick={() => onCopy(msg.content)}
@@ -306,7 +315,19 @@ export default function AssistantPage() {
       const res = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          message: text,
+          ...(() => {
+            const s = getStoredSession()
+            return {
+              userId: s?.userId,
+              companyId: s?.companyId,
+              role: s?.role,
+              userName: s?.fullName,
+              companyName: s?.dashboards?.[0]?.company?.name || "your company",
+            }
+          })(),
+        }),
       })
 
       const data = await res.json().catch(() => ({}))
@@ -317,6 +338,8 @@ export default function AssistantPage() {
         role: "assistant",
         content: data.answer || "I didn't get a response — please try again.",
         ts: new Date(),
+        aiPowered: !!data.aiPowered,
+        action: !!data.action,
       }
 
       updateConvo(convoId, (c) => ({

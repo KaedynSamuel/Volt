@@ -5,9 +5,11 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Lock, Mail, Loader2, Eye, EyeOff } from "lucide-react"
 import { storeCompany } from "@/lib/tenant"
-import { storeSession } from "@/lib/auth"
+import { storeSession, type AppSession } from "@/lib/auth"
+import { VoltyRoleIntro } from "@/components/ui/volty-role-intro"
 
 const REMEMBER_KEY = "volt-remembered-email"
+const INTRO_SEEN_PREFIX = "volt-role-intro-seen-"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -17,6 +19,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [introSession, setIntroSession] = useState<AppSession | null>(null)
+  const [introCompany, setIntroCompany] = useState<{ name: string } | null>(null)
 
   useEffect(() => {
     // Restore remembered email
@@ -56,7 +60,16 @@ export default function LoginPage() {
       storeSession(data.session)
       storeCompany(data.company)
 
-      router.push("/dashboards")
+      // Show the Volty role intro only on first-ever login per user
+      const introKey = `${INTRO_SEEN_PREFIX}${data.session.userId}`
+      const alreadySeen = localStorage.getItem(introKey)
+      if (!alreadySeen) {
+        localStorage.setItem(introKey, "1")
+        setIntroSession(data.session)
+        setIntroCompany(data.company)
+      } else {
+        router.push("/dashboards")
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : "Login failed")
     } finally {
@@ -66,7 +79,14 @@ export default function LoginPage() {
 
   return (
     <>
-
+      {introSession && introCompany && (
+        <VoltyRoleIntro
+          userName={introSession.fullName}
+          role={introSession.role}
+          companyName={introCompany.name}
+          onDone={() => router.push("/dashboards")}
+        />
+      )}
       <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
         <form onSubmit={handleSubmit} className="glass-card w-full max-w-md p-8 space-y-5">
           <div>

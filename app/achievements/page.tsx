@@ -531,6 +531,23 @@ function getBadges(stats: AchievementStats): AchievementBadge[] {
   ]
 }
 
+// Map badge index (0-based order they appear in getBadges) to PNG number 1-50
+const BADGE_PNG_MAP: Record<string, number> = {
+  "first-spark": 1, "task-starter": 2, "task-builder": 3, "task-runner": 4,
+  "task-flow": 5, "daily-pusher": 6, "task-grinder": 7, "work-sprinter": 8,
+  "task-master": 9, "task-champion": 10, "task-elite": 11, "task-commander": 12,
+  "task-overlord": 13, "ticket-rookie": 14, "ticket-helper": 15, "ticket-solver": 16,
+  "ticket-specialist": 17, "ticket-warrior": 18, "ticket-guardian": 19, "ticket-legend": 20,
+  "early-bird": 21, "deadline-dodger": 22, "ahead-of-time": 23, "two-days-early": 24,
+  "future-planner": 25, "same-day-finisher": 26, "speed-runner": 27, "lightning-close": 28,
+  "priority-spark": 29, "priority-hero": 30, "pressure-player": 31, "urgent-responder": 32,
+  "critical-closer": 33, "crisis-legend": 34, "work-item-one": 35, "work-item-ten": 36,
+  "work-item-twenty-five": 37, "work-item-fifty": 38, "work-item-hundred": 39, "work-item-two-fifty": 40,
+  "active-operator": 41, "task-juggler": 42, "queue-controller": 43, "system-watch": 44,
+  "workload-builder": 45, "workload-architect": 46, "workload-empire": 47,
+  "clean-finisher": 48, "reliable-finisher": 49, "domain-surge": 50,
+}
+
 function BadgeImage({
   badge,
   tierColor,
@@ -541,34 +558,21 @@ function BadgeImage({
   size?: "small" | "normal" | "large"
 }) {
   const Icon = badge.fallback
-  const [failed, setFailed] = useState(false)
-  const animatedSrc = `/badges/animated/${badge.id}.html`
-
-  // px = outer container; inner iframe renders at 300px then scales down
+  const pngNum = BADGE_PNG_MAP[badge.id]
   const px = size === "large" ? 140 : size === "small" ? 80 : 108
-  const scale = px / 300
 
   return (
     <div className="relative shrink-0" style={{ width: px, height: px, overflow: "hidden" }}>
-      {!failed ? (
-        <iframe
-          src={animatedSrc}
-          title={badge.name}
-          scrolling="no"
+      {pngNum ? (
+        <img
+          src={`/badges/${pngNum}.png`}
+          alt={badge.name}
           style={{
-            width: 300,
-            height: 300,
-            border: "none",
-            background: "transparent",
-            pointerEvents: "none",
-            transform: `scale(${scale})`,
-            transformOrigin: "top left",
-            // negative margins collapse the scaled-down whitespace
-            marginBottom: -(300 - px),
-            marginRight: -(300 - px),
+            width: px,
+            height: px,
+            objectFit: "contain",
             filter: badge.unlocked ? undefined : "grayscale(1) brightness(0.28) opacity(0.55)",
           }}
-          onError={() => setFailed(true)}
         />
       ) : (
         <div
@@ -621,12 +625,11 @@ export default function AchievementsPage() {
   const [tierUpData, setTierUpData] = useState<{ fromTier: string; toTier: string; toColor: string } | null>(null)
   const [showBanner, setShowBanner] = useState(false)
   const [badgeFilter, setBadgeFilter] = useState<"All"|"Easy"|"Medium"|"Hard"|"Legendary">("All")
+  const [poppedBadge, setPoppedBadge] = useState<AchievementBadge | null>(null)
+  const [achievementsTheme, setAchievementsTheme] = useState<string>("default")
+  const badgeRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const prevLevelRef = React.useRef<number | null>(null)
   const prevTierRef = React.useRef<string | null>(null)
-  // Guard: prevents the level-up animation from firing on initial page load.
-  // Only set to true after the first XP baseline read, so the animation only
-  // triggers on a genuine XP increase during the same session.
-  const initialCheckDoneRef = React.useRef(false)
 
   useEffect(() => {
     setMounted(true)
@@ -643,6 +646,31 @@ export default function AchievementsPage() {
   }-${session?.userId || session?.email || "user"}-${new Date().getFullYear()}`
 
   const progressStorageKey = getAchievementProgressStorageKey(session)
+  const themeStorageKey = `volt-achievements-theme-${session?.companyId || "global"}-${session?.userId || "user"}`
+
+  // Achievement page themes — tied to tier names
+  const ACHIEVEMENT_THEMES = [
+    { name: "default",   label: "Default",   primary: "#d011c9", accent: "#05a391", glow: "rgba(208,17,201,0.3)" },
+    { name: "Spark",     label: "Spark",     primary: "#22c55e", accent: "#06b6d4", glow: "rgba(34,197,94,0.3)" },
+    { name: "Pulse",     label: "Pulse",     primary: "#06b6d4", accent: "#3b82f6", glow: "rgba(6,182,212,0.3)" },
+    { name: "Surge",     label: "Surge",     primary: "#3b82f6", accent: "#8b5cf6", glow: "rgba(59,130,246,0.3)" },
+    { name: "Voltage",   label: "Voltage",   primary: "#8b5cf6", accent: "#d011c9", glow: "rgba(139,92,246,0.3)" },
+    { name: "Overdrive", label: "Overdrive", primary: "#f59e0b", accent: "#f97316", glow: "rgba(245,158,11,0.3)" },
+    { name: "Apex",      label: "Apex",      primary: "#f97316", accent: "#ef4444", glow: "rgba(249,115,22,0.3)" },
+    { name: "Legend",    label: "Legend",    primary: "#ef4444", accent: "#a855f7", glow: "rgba(239,68,68,0.3)" },
+  ]
+  const activeTheme = ACHIEVEMENT_THEMES.find(t => t.name === achievementsTheme) || ACHIEVEMENT_THEMES[0]
+
+  useEffect(() => {
+    if (!mounted) return
+    const stored = localStorage.getItem(themeStorageKey)
+    if (stored) setAchievementsTheme(stored)
+  }, [mounted, themeStorageKey])
+
+  function applyAchievementTheme(themeName: string) {
+    setAchievementsTheme(themeName)
+    localStorage.setItem(themeStorageKey, themeName)
+  }
 
   useEffect(() => {
     if (!mounted) return
@@ -699,22 +727,6 @@ export default function AchievementsPage() {
       prevLevelRef.current = currentLevel
       prevTierRef.current = currentTier
       prevXpRef.current = currentXp
-      initialCheckDoneRef.current = true
-      return
-    }
-
-    // On the very first time this effect runs after mount (initial page load),
-    // just record the baseline without playing any animation — even if the
-    // stored XP happens to differ from in-memory state due to a race between
-    // the syncProgress effect and this one.
-    if (!initialCheckDoneRef.current) {
-      prevLevelRef.current = currentLevel
-      prevTierRef.current = currentTier
-      prevXpRef.current = currentXp
-      initialCheckDoneRef.current = true
-      // Update stored baseline to match current reality
-      localStorage.setItem(lsKey, String(currentLevel))
-      localStorage.setItem(lsXpKey, String(currentXp))
       return
     }
 
@@ -837,11 +849,27 @@ export default function AchievementsPage() {
     currentYearRank.image,
   ])
 
+  function triggerAchievementPop(badge: AchievementBadge) {
+    // Scroll to the badge section
+    const badgeEl = badgeRefs.current[badge.id]
+    if (badgeEl) {
+      badgeEl.scrollIntoView({ behavior: "smooth", block: "center" })
+      setTimeout(() => {
+        setPoppedBadge(badge)
+        setTimeout(() => setPoppedBadge(null), 4000)
+      }, 600)
+    } else {
+      setPoppedBadge(badge)
+      setTimeout(() => setPoppedBadge(null), 4000)
+    }
+  }
+
   function toggleProfileBadge(badge: AchievementBadge) {
     if (!badge.unlocked) return
 
     setSelectedBadgeIds((current) => {
-      let next = current.includes(badge.id)
+      const wasSelected = current.includes(badge.id)
+      let next = wasSelected
         ? current.filter((id) => id !== badge.id)
         : [...current, badge.id]
 
@@ -850,6 +878,10 @@ export default function AchievementsPage() {
       }
 
       localStorage.setItem(storageKey, JSON.stringify(next))
+
+      // Trigger pop animation when a badge is newly selected
+      if (!wasSelected) triggerAchievementPop(badge)
+
       return next
     })
   }
@@ -935,6 +967,44 @@ export default function AchievementsPage() {
           }}
         />
       )}
+      {/* Achievement Pop Overlay */}
+      {poppedBadge && (
+        <div className="fixed inset-0 z-[9980] flex items-center justify-center pointer-events-none">
+          <style>{`
+            @keyframes achieve-backdrop { from{opacity:0} to{opacity:1} }
+            @keyframes achieve-card-pop { 0%{transform:scale(0.3) translateY(60px);opacity:0} 60%{transform:scale(1.08) translateY(-8px);opacity:1} 80%{transform:scale(0.96) translateY(2px)} 100%{transform:scale(1) translateY(0);opacity:1} }
+            @keyframes achieve-badge-bounce { 0%,100%{transform:translateY(0) rotate(0deg)} 30%{transform:translateY(-18px) rotate(-6deg)} 60%{transform:translateY(-8px) rotate(4deg)} }
+            @keyframes achieve-spark { 0%{transform:scale(0) translate(0,0);opacity:1} 100%{transform:scale(1) translate(var(--tx),var(--ty));opacity:0} }
+          `}</style>
+          <div style={{ animation: "achieve-card-pop 0.6s cubic-bezier(0.16,1,0.3,1) forwards", pointerEvents: "none" }}
+            className="relative flex flex-col items-center gap-4 rounded-[2rem] border border-border bg-card/95 p-10 shadow-2xl backdrop-blur-xl text-center"
+          >
+            {/* Sparks burst */}
+            {Array.from({length:10}).map((_,i) => {
+              const angle = (i/10)*360
+              const dist = 60 + Math.random()*40
+              const tx = Math.cos(angle*Math.PI/180)*dist
+              const ty = Math.sin(angle*Math.PI/180)*dist
+              return (
+                <div key={i} className="absolute h-2 w-2 rounded-full pointer-events-none"
+                  style={{ background: activeTheme.primary, top:"50%", left:"50%",
+                    ["--tx" as string]: `${tx}px`, ["--ty" as string]: `${ty}px`,
+                    animation: `achieve-spark 0.8s ease-out ${i*0.05}s forwards`
+                  }} />
+              )
+            })}
+            <div style={{ animation: "achieve-badge-bounce 1s ease-in-out 0.3s infinite" }}>
+              <BadgeImage badge={poppedBadge} tierColor={activeTheme.primary} size="large" />
+            </div>
+            <div>
+              <p className="text-2xl font-black" style={{ color: activeTheme.primary }}>Well Done! 🎉</p>
+              <p className="mt-1 text-lg font-bold">{poppedBadge.name}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{poppedBadge.description}</p>
+              <p className="mt-2 text-xs font-semibold" style={{ color: activeTheme.accent }}>+{poppedBadge.xpReward} XP earned</p>
+            </div>
+          </div>
+        </div>
+      )}
       {tierUpData && (
         <VoltTierUp
           fromTier={tierUpData.fromTier}
@@ -952,12 +1022,29 @@ export default function AchievementsPage() {
         />
       )}
       <div className="space-y-7 text-foreground">
-        <div className="pointer-events-none fixed inset-0 -z-10 opacity-70">
-          <div
-            className="absolute left-10 top-10 h-80 w-80 rounded-full blur-3xl"
-            style={{ backgroundColor: rank.tier.glow }}
-          />
-          <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
+        {/* Always-on sparks background */}
+        <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+          <style>{`
+            @keyframes spark-float-1{0%,100%{transform:translateY(0) translateX(0) scale(1);opacity:0.5}50%{transform:translateY(-20px) translateX(8px) scale(1.2);opacity:1}}
+            @keyframes spark-float-2{0%,100%{transform:translateY(0) translateX(0) scale(1);opacity:0.4}50%{transform:translateY(-14px) translateX(-6px) scale(1.1);opacity:0.9}}
+            @keyframes spark-float-3{0%,100%{transform:translateY(0) translateX(0);opacity:0.3}50%{transform:translateY(-10px) translateX(4px);opacity:0.8}}
+          `}</style>
+          <div className="absolute left-10 top-10 h-80 w-80 rounded-full blur-3xl" style={{ backgroundColor: activeTheme.glow, opacity: 0.7 }} />
+          <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full blur-3xl" style={{ backgroundColor: activeTheme.accent + "30" }} />
+          {/* Animated spark dots */}
+          {[
+            {x:"15%",y:"20%",s:4,anim:"spark-float-1 2.2s ease-in-out infinite"},
+            {x:"80%",y:"15%",s:3,anim:"spark-float-2 2.8s ease-in-out infinite 0.3s"},
+            {x:"25%",y:"70%",s:5,anim:"spark-float-1 3s ease-in-out infinite 0.7s"},
+            {x:"70%",y:"65%",s:3,anim:"spark-float-3 2.5s ease-in-out infinite 1s"},
+            {x:"50%",y:"30%",s:4,anim:"spark-float-2 2s ease-in-out infinite 0.5s"},
+            {x:"90%",y:"45%",s:3,anim:"spark-float-1 3.2s ease-in-out infinite 1.2s"},
+            {x:"5%",y:"55%",s:4,anim:"spark-float-3 2.7s ease-in-out infinite 0.2s"},
+            {x:"60%",y:"85%",s:3,anim:"spark-float-2 2.3s ease-in-out infinite 0.9s"},
+          ].map((sp, i) => (
+            <div key={i} className="absolute rounded-full"
+              style={{ left:sp.x, top:sp.y, width:sp.s, height:sp.s, background:activeTheme.primary, boxShadow:`0 0 6px ${activeTheme.primary}`, animation:sp.anim }} />
+          ))}
         </div>
 
         <div className="mx-auto max-w-7xl space-y-7">
@@ -1230,6 +1317,36 @@ export default function AchievementsPage() {
                 </div>
               </section>
 
+              {/* ── Achievements Theme Picker ── */}
+              <section className="rounded-[2rem] border border-border bg-card/50 p-6 shadow-xl backdrop-blur-xl">
+                <div className="mb-4">
+                  <h2 className="text-xl font-bold">Page Theme</h2>
+                  <p className="text-sm text-muted-foreground">Choose a banner theme to personalise your achievements page. Unlock tiers to access more.</p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {ACHIEVEMENT_THEMES.map((theme) => {
+                    const tierIdx = ["default","Spark","Pulse","Surge","Voltage","Overdrive","Apex","Legend"].indexOf(theme.name)
+                    const requiredTier = Math.max(0, tierIdx - 1)
+                    const unlocked = theme.name === "default" || rank.tierIndex >= requiredTier
+                    const active = achievementsTheme === theme.name
+                    return (
+                      <button
+                        key={theme.name}
+                        onClick={() => unlocked && applyAchievementTheme(theme.name)}
+                        disabled={!unlocked}
+                        className={`relative flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${active ? "scale-105" : "opacity-70 hover:opacity-100"} ${!unlocked ? "cursor-not-allowed opacity-40" : ""}`}
+                        style={{ borderColor: active ? theme.primary : `${theme.primary}40`, background: active ? `${theme.primary}18` : "transparent", color: active ? theme.primary : undefined }}
+                      >
+                        <span className="h-3 w-3 rounded-sm" style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.accent})` }} />
+                        {theme.label}
+                        {active && <span className="ml-1 text-[10px]">✓</span>}
+                        {!unlocked && <Lock className="h-3 w-3 ml-1" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+
               <section data-tour="badges-section" className="rounded-[2rem] border border-border bg-card/50 p-6 shadow-xl backdrop-blur-xl">
                 <div className="mb-5 flex items-center justify-between flex-wrap gap-3">
                   <div>
@@ -1258,10 +1375,10 @@ export default function AchievementsPage() {
                     const selected = selectedBadgeIds.includes(badge.id)
 
                     return (
+                      <div key={badge.id} ref={el => { badgeRefs.current[badge.id] = el }}>
                       <button
-                        key={badge.id}
                         onClick={() => toggleProfileBadge(badge)}
-                        className={`group relative rounded-2xl border text-left transition hover:-translate-y-0.5 hover:shadow-lg ${
+                        className={`group relative w-full rounded-2xl border text-left transition hover:-translate-y-0.5 hover:shadow-lg ${
                           badge.unlocked
                             ? selected ? "border-border/80 bg-muted/60" : "border-border bg-muted/40"
                             : "border-border/50 bg-muted/15"
@@ -1269,8 +1386,8 @@ export default function AchievementsPage() {
                         style={{ padding: "10px 12px" }}
                       >
                         <div className="flex items-center gap-3">
-                          {/* Badge — no box, just the badge */}
-                          <BadgeImage badge={badge} tierColor={rank.tier.color} size="normal" />
+                          {/* Badge — PNG image */}
+                          <BadgeImage badge={badge} tierColor={activeTheme.primary} size="normal" />
 
                           {/* Info */}
                           <div className="flex-1 min-w-0">
@@ -1295,12 +1412,13 @@ export default function AchievementsPage() {
                                 <span>{percent}%</span>
                               </div>
                               <div className="h-1 rounded-full bg-muted/50 overflow-hidden">
-                                <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, backgroundColor: badge.unlocked ? rank.tier.color : "rgba(128,128,128,0.25)" }} />
+                                <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, backgroundColor: badge.unlocked ? activeTheme.primary : "rgba(128,128,128,0.25)" }} />
                               </div>
                             </div>
                           </div>
                         </div>
                       </button>
+                      </div>
                     )
                   })}
                 </div>

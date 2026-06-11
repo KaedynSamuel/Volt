@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { sendVoltEmailNotification, getUserEmail, getUserFullName } from "@/lib/server/volt-notifications"
-import { getDbPool } from "@/lib/server/volt-schema"
+import { sendVoltEmailNotification } from "@/lib/server/volt-notifications"
 
 const BLOCKED_DOMAINS = [
   "tempmail.com","mailinator.com","guerrillamail.com","throwaway.email",
@@ -51,23 +50,12 @@ export async function POST(request: Request) {
     }
 
     if (hasSensitiveContent(emailBody) || hasSensitiveContent(subject)) {
+      // Log but do not block — warn was shown client-side; server logs the event
       console.warn(`[EmailV] Sensitive content detected in email from user ${senderUserId} (company ${companyId})`)
     }
 
-    // Look up the sender's email and name so recipients can reply directly to them
-    let fromEmail: string | null = null
-    let fromName: string | null = null
-    if (senderUserId && companyId) {
-      try {
-        const pool = await getDbPool()
-        fromEmail = await getUserEmail(pool, Number(senderUserId), Number(companyId))
-        fromName = await getUserFullName(pool, Number(senderUserId), Number(companyId))
-      } catch {
-        // Non-fatal — proceed without sender info
-      }
-    }
-
-    console.info(`[EmailV] Send: from userId=${senderUserId} (${fromEmail || "unknown"}) companyId=${companyId} to=${to.join(",")} subject="${subject}" priority=${priority}`)
+    // Log every send attempt server-side for audit trail
+    console.info(`[EmailV] Send: from userId=${senderUserId} companyId=${companyId} to=${to.join(",")} subject="${subject}" priority=${priority}`)
 
     // Send to each recipient
     await Promise.all(
@@ -76,8 +64,6 @@ export async function POST(request: Request) {
           to: recipient,
           subject: priority === "high" ? `[HIGH PRIORITY] ${subject}` : subject,
           message: emailBody,
-          fromEmail,
-          fromName,
         }),
       ),
     )
@@ -90,8 +76,6 @@ export async function POST(request: Request) {
             to: recipient,
             subject: `[CC] ${subject}`,
             message: emailBody,
-            fromEmail,
-            fromName,
           }),
         ),
       )

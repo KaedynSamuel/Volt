@@ -1035,7 +1035,7 @@ export default function DashboardsPage() {
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.13),transparent_30%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.15),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.03),transparent)]" />
 
       <div className="mx-auto grid min-h-screen max-w-[1500px] gap-4 p-4 lg:grid-cols-[320px_1fr]">
-        <aside className="glass-card flex min-h-[calc(100vh-2rem)] flex-col rounded-[2rem] border border-border/70 bg-card/75 p-4 shadow-2xl">
+        <aside className="glass-card flex max-h-[calc(100vh-2rem)] flex-col rounded-[2rem] border border-border/70 bg-card/75 p-4 shadow-2xl overflow-hidden">
           <div className="mb-4 flex items-center gap-3 border-b border-border/70 pb-4">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg shadow-primary/20">
               <Zap className="h-5 w-5" />

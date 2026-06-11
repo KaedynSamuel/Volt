@@ -196,7 +196,6 @@
   body {
     @apply bg-background text-foreground antialiased;
     min-height: 100vh;
-    overflow: hidden;
     background:
       radial-gradient(circle at top left, rgba(208, 17, 201, 0.16), transparent 34rem),
       radial-gradient(circle at top right, rgba(5, 163, 145, 0.14), transparent 32rem),
@@ -353,24 +352,54 @@
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar — rectangular with animated colour sweep */
+@keyframes volt-scroll-flow {
+  0%   { background-position: 0% 0%; }
+  50%  { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
 @layer base {
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--background);
+    background: rgba(255,255,255,0.04);
+    border-radius: 2px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--primary), var(--accent));
-    border-radius: 999px;
+    background: linear-gradient(
+      180deg,
+      var(--primary) 0%,
+      var(--accent)  40%,
+      #8b5cf6        70%,
+      var(--primary) 100%
+    );
+    background-size: 100% 300%;
+    border-radius: 2px;
+    animation: volt-scroll-flow 3s ease infinite;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, var(--accent), var(--primary));
+    background: linear-gradient(
+      180deg,
+      var(--accent)  0%,
+      #8b5cf6        40%,
+      var(--primary) 70%,
+      var(--accent)  100%
+    );
+    background-size: 100% 300%;
+    border-radius: 2px;
+    animation: volt-scroll-flow 1.5s ease infinite;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) rgba(255,255,255,0.04);
   }
 }
 

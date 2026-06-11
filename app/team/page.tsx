@@ -176,6 +176,25 @@ async function decryptText(
   iv: string,
   securityKey: string,
 ) {
+  // If there's no IV or the body looks like plain text (not base64 ciphertext),
+  // return the body as-is — mobile clients may send unencrypted messages
+  if (!iv || !securityKey) {
+    return encryptedBody || ""
+  }
+
+  // Detect plain-text: valid base64 encoded cipher is always longer than source
+  // and contains no spaces. Short strings or strings with spaces are likely plain text.
+  const looksLikePlainText =
+    !encryptedBody ||
+    encryptedBody.length < 8 ||
+    encryptedBody.includes(" ") ||
+    encryptedBody.startsWith("{") ||
+    encryptedBody.startsWith("[")
+
+  if (looksLikePlainText) {
+    return encryptedBody
+  }
+
   try {
     const key = await importTeamKey(securityKey);
     const decrypted = await crypto.subtle.decrypt(
@@ -186,7 +205,14 @@ async function decryptText(
 
     return new TextDecoder().decode(decrypted);
   } catch {
-    return "Unable to decrypt this message";
+    // Last resort — if decryption fails, try returning the raw body
+    // (mobile app may have sent plaintext stored as the "encryptedBody" field)
+    try {
+      const decoded = atob(encryptedBody)
+      // If it decodes to readable text, return it
+      if (/^[\x20-\x7E\n\r\t]+$/.test(decoded)) return decoded
+    } catch {}
+    return encryptedBody.length < 500 ? encryptedBody : "⚠️ Could not display this message"
   }
 }
 

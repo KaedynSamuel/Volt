@@ -657,7 +657,7 @@ const graphData = useMemo(() => {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-              <Card className="border-border/60 bg-card/95 shadow-sm">
+              <Card className="overflow-hidden border-border/60 bg-card/95 shadow-sm">
                 <CardHeader className="space-y-4 pb-3">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
@@ -759,7 +759,7 @@ const ticketHeight =
                               className="group flex flex-1 flex-col items-center gap-3"
                             >
                               <div className="relative flex h-[260px] w-full items-end justify-center">
-                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-20 hidden whitespace-nowrap rounded-xl border bg-card px-3 py-1.5 text-xs shadow-lg group-hover:block">
+                                <div className="absolute -top-7 hidden whitespace-nowrap rounded-xl border bg-card px-3 py-1.5 text-xs shadow-lg group-hover:block">
                                   <span className="font-semibold">{value}</span>{" "}
                                   item{value === 1 ? "" : "s"} • {item.label}
                                   {graphMode === "both" && (
