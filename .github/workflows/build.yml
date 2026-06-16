@@ -49,7 +49,7 @@ jobs:
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: VoltApp
+          app-name: voltdox-dxhqffh8ccbzc3c7
           package: deploy.zip
 
   build-electron:
