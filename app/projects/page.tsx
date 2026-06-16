@@ -333,7 +333,6 @@ export default function ProjectsPage() {
                       <input type="checkbox" checked={form.memberIds.includes(member.id)} onChange={() => toggleMember(member.id)} className="h-4 w-4" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium text-foreground">{member.fullName}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{member.role}</span>
                       </span>
                     </label>
                   ))}

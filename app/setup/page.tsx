@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 
 import { storeSession } from "@/lib/auth"
-import { storeCompany } from "@/lib/tenant"
+import { getReadableForeground, storeCompany } from "@/lib/tenant"
 
 type SetupForm = {
   companyName: string
@@ -726,6 +726,40 @@ export default function SetupPage() {
                         }}
                       />
                     </div>
+
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                      <span
+                        className="rounded-xl px-4 py-2 text-sm font-semibold shadow"
+                        style={{
+                          background: `linear-gradient(90deg, ${form.primaryColor}, ${form.accentColor})`,
+                          color: getReadableForeground(form.primaryColor),
+                        }}
+                      >
+                        + Create
+                      </span>
+                      <span
+                        className="rounded-full px-3 py-1 text-xs font-bold"
+                        style={{
+                          backgroundColor: `${form.primaryColor}1a`,
+                          color: form.primaryColor,
+                        }}
+                      >
+                        Status badge
+                      </span>
+                      <span
+                        className="rounded-full px-3 py-1 text-xs font-bold"
+                        style={{
+                          backgroundColor: `${form.accentColor}1a`,
+                          color: form.accentColor,
+                        }}
+                      >
+                        Accent badge
+                      </span>
+                    </div>
+
+                    <p className="mt-3 text-[11px] text-muted-foreground">
+                      Volt automatically picks readable text for buttons based on the colours you choose.
+                    </p>
                   </div>
                 </div>
               </div>

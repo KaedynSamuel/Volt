@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Share2, X, Check } from "lucide-react"
+import { Share2, X, Check, Lock } from "lucide-react"
 
 type BannerProps = {
   userName: string
@@ -16,6 +16,8 @@ type BannerProps = {
   onClose: () => void
   onShareTeam: () => void
   onShareEmail: () => void
+  initialThemeName?: string
+  onSaveTheme?: (themeName: string) => void
 }
 
 // Each theme maps to a tier — you must have reached that tier to unlock it
@@ -35,10 +37,16 @@ export function VoltBanner({
   userName, userRole, tierName, tierColor, tierIndex,
   level, totalXp, xpProgress, selectedBadgeIds,
   onClose, onShareTeam, onShareEmail,
+  initialThemeName, onSaveTheme,
 }: BannerProps) {
-  // Auto-assign theme based on current tier
+  // Auto-assign theme based on current tier, or restore the saved preference
+  // if the player has actually unlocked it.
   const defaultTheme = THEMES[Math.min(tierIndex, THEMES.length - 1)]
-  const [theme, setTheme] = useState(defaultTheme)
+  const savedTheme = initialThemeName
+    ? THEMES.find((t) => t.name === initialThemeName && t.requiredTier <= tierIndex)
+    : undefined
+  const [theme, setTheme] = useState(savedTheme || defaultTheme)
+  const [saved, setSaved] = useState(true)
   const [showShare, setShowShare] = useState(false)
   const [copied, setCopied] = useState(false)
   const [particles, setParticles] = useState<{id:number;x:number;y:number;size:number;delay:number}[]>([])
@@ -58,6 +66,17 @@ export function VoltBanner({
     navigator.clipboard.writeText(`Check out my Volt profile! Level ${level} ${tierName} tier — ${totalXp} XP`).catch(() => {})
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  function handleSelectTheme(t: typeof THEMES[number]) {
+    if (t.requiredTier > tierIndex) return // locked — not unlocked yet
+    setTheme(t)
+    setSaved(t.name === initialThemeName)
+  }
+
+  function handleSaveTheme() {
+    onSaveTheme?.(theme.name)
+    setSaved(true)
   }
 
   const r1 = theme.c1; const r2 = theme.c2
@@ -254,19 +273,52 @@ export function VoltBanner({
 
         {/* Theme selector */}
         <div style={{ marginTop:16,display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap" }}>
-          {THEMES.map(t => (
-            <button key={t.name} onClick={() => setTheme(t)} style={{
-              padding:"5px 14px",borderRadius:20,cursor:"pointer",
-              fontFamily:"'Courier New',monospace",fontSize:9,fontWeight:700,
-              letterSpacing:"0.12em",textTransform:"uppercase",
-              background:`rgba(${t.c1},${theme.name===t.name?"0.2":"0.08"})`,
-              border:`1px solid rgba(${t.c1},${theme.name===t.name?"0.55":"0.2"})`,
-              color:`rgba(${t.c1},${theme.name===t.name?"1":"0.6"})`,
-            }}>
-              {t.name}
-            </button>
-          ))}
+          {THEMES.map(t => {
+            const locked = t.requiredTier > tierIndex
+            const active = theme.name === t.name
+            return (
+              <button
+                key={t.name}
+                onClick={() => handleSelectTheme(t)}
+                disabled={locked}
+                title={locked ? `Reach the ${TIER_NAMES[t.requiredTier] || t.name} tier to unlock this banner` : t.name}
+                style={{
+                  display:"flex",alignItems:"center",gap:5,
+                  padding:"5px 14px",borderRadius:20,cursor:locked?"not-allowed":"pointer",
+                  fontFamily:"'Courier New',monospace",fontSize:9,fontWeight:700,
+                  letterSpacing:"0.12em",textTransform:"uppercase",
+                  background:locked?"rgba(255,255,255,0.04)":`rgba(${t.c1},${active?"0.2":"0.08"})`,
+                  border:locked?"1px solid rgba(255,255,255,0.08)":`1px solid rgba(${t.c1},${active?"0.55":"0.2"})`,
+                  color:locked?"rgba(255,255,255,0.25)":`rgba(${t.c1},${active?"1":"0.6"})`,
+                  opacity:locked?0.6:1,
+                }}>
+                {locked && <Lock size={9} />}
+                {t.name}
+              </button>
+            )
+          })}
         </div>
+
+        {/* Save preference */}
+        {onSaveTheme && (
+          <div style={{ marginTop:10,textAlign:"center" }}>
+            <button
+              onClick={handleSaveTheme}
+              disabled={saved}
+              style={{
+                display:"inline-flex",alignItems:"center",gap:6,padding:"6px 16px",borderRadius:10,
+                cursor:saved?"default":"pointer",
+                background:saved?"rgba(255,255,255,0.04)":`rgba(${r1},0.14)`,
+                border:saved?"1px solid rgba(255,255,255,0.08)":`1px solid rgba(${r1},0.4)`,
+                fontFamily:"'Courier New',monospace",fontSize:9,fontWeight:700,
+                letterSpacing:"0.15em",textTransform:"uppercase",
+                color:saved?"rgba(255,255,255,0.35)":`rgba(${r1},0.95)`,
+              }}
+            >
+              {saved ? <><Check size={11}/> Banner Saved</> : <>Save Banner Choice</>}
+            </button>
+          </div>
+        )}
 
         {/* Close */}
         <div style={{ marginTop:14,textAlign:"center" }}>

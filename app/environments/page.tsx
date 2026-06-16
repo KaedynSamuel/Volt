@@ -6,6 +6,7 @@ import { VoltPageTour } from "@/components/tours/VoltPageTour"
 import { cn } from "@/lib/utils"
 import {
   FileText,
+  FileDown,
   Table2,
   Upload,
   Download,
@@ -57,7 +58,54 @@ function VolteDocs({ onClose }: { onClose: () => void }) {
     const a = document.createElement("a")
     a.href = URL.createObjectURL(blob)
     a.download = `${fileName}.html`
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(a.href)
+  }
+
+  function exportPdf() {
+    const content = editorRef.current?.innerHTML || ""
+    const printWindow = window.open("", "_blank", "width=900,height=1000")
+    if (!printWindow) return
+
+    printWindow.document.write(`<!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${fileName}</title>
+          <style>
+            * { box-sizing: border-box; }
+            body {
+              font-family: Georgia, serif;
+              font-size: 14px;
+              line-height: 1.7;
+              color: #111;
+              padding: 48px 56px;
+              max-width: 760px;
+              margin: 0 auto;
+            }
+            h1 { font-size: 28px; font-weight: 700; margin: 0 0 12px; }
+            h2 { font-size: 20px; font-weight: 700; margin: 0 0 10px; }
+            ul { margin-left: 20px; list-style: disc; }
+            ol { margin-left: 20px; list-style: decimal; }
+            p { margin: 0 0 10px; }
+            @media print {
+              body { padding: 0; }
+              @page { margin: 2cm; }
+            }
+          </style>
+        </head>
+        <body>${content || "<p></p>"}</body>
+      </html>`)
+    printWindow.document.close()
+    printWindow.focus()
+
+    // Give the new document a moment to render before opening the print dialog
+    printWindow.onload = () => {
+      printWindow.print()
+    }
+    setTimeout(() => printWindow.print(), 350)
   }
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -131,7 +179,16 @@ function VolteDocs({ onClose }: { onClose: () => void }) {
             className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
             <Download className="h-3.5 w-3.5" />
-            Export
+            Export HTML
+          </button>
+          <button
+            type="button"
+            onClick={exportPdf}
+            title="Download as PDF"
+            className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/15"
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            Download PDF
           </button>
           <button
             type="button"
@@ -174,15 +231,20 @@ function VolteDocs({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Editor */}
-      <div className="flex-1 overflow-auto bg-white p-8">
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          className="min-h-full max-w-none text-black outline-none [&_h1]:mb-3 [&_h1]:text-3xl [&_h1]:font-bold [&_h2]:mb-2 [&_h2]:text-xl [&_h2]:font-bold [&_ul]:ml-5 [&_ul]:list-disc [&_ol]:ml-5 [&_ol]:list-decimal"
-          data-placeholder="Start typing your document here…"
-          style={{ fontSize: "14px", lineHeight: "1.7", fontFamily: "Georgia, serif" }}
-        />
+      <div className="flex-1 overflow-auto bg-muted/30 p-4 sm:p-8">
+        <div className="mx-auto max-w-[760px] rounded-xl bg-white p-8 shadow-lg sm:p-12">
+          <div
+            ref={editorRef}
+            contentEditable
+            suppressContentEditableWarning
+            className="volt-docs-editor min-h-[600px] max-w-none text-black outline-none [&_h1]:mb-3 [&_h1]:text-3xl [&_h1]:font-bold [&_h2]:mb-2 [&_h2]:text-xl [&_h2]:font-bold [&_ul]:ml-5 [&_ul]:list-disc [&_ol]:ml-5 [&_ol]:list-decimal"
+            data-placeholder="Start typing your document here…"
+            style={{ fontSize: "14px", lineHeight: "1.7", fontFamily: "Georgia, serif" }}
+          />
+        </div>
+        <p className="mx-auto mt-3 max-w-[760px] text-center text-xs text-muted-foreground">
+          Everything you type here can be downloaded as a PDF or exported as an HTML file using the buttons above.
+        </p>
       </div>
     </div>
   )
@@ -226,11 +288,14 @@ function VolteSheets({ onClose }: { onClose: () => void }) {
     const lines = Array.from({ length: rows }, (_, r) =>
       Array.from({ length: cols }, (_, c) => `"${getCellValue(r, c).replace(/"/g, '""')}"`).join(",")
     )
-    const blob = new Blob([lines.join("\n")], { type: "text/csv" })
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" })
     const a = document.createElement("a")
     a.href = URL.createObjectURL(blob)
-    a.download = `${fileName}.csv`
+    a.download = `${fileName || "Untitled Sheet"}.csv`
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(a.href)
   }
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -341,7 +406,7 @@ function VolteSheets({ onClose }: { onClose: () => void }) {
           </thead>
           <tbody>
             {Array.from({ length: rows }, (_, r) => (
-              <tr key={r}>
+              <tr key={r} className="volt-sheet-row">
                 <td className="sticky left-0 z-10 border border-border/50 bg-muted/40 px-2 py-0.5 text-center text-[10px] font-bold text-muted-foreground">
                   {r + 1}
                 </td>

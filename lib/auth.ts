@@ -1,4 +1,4 @@
-export type AppRole = "creator" | "business_owner" | "admin" | "employee"
+export type AppRole = "creator" | "business_owner" | "admin" | "manager" | "employee"
 
 export type AppDashboardMembership = {
   userId: number
@@ -6,7 +6,6 @@ export type AppDashboardMembership = {
   fullName: string
   email: string
   role: AppRole
-  status: string
   company: {
     id: number
     name: string
@@ -14,8 +13,6 @@ export type AppDashboardMembership = {
     logoUrl: string | null
     primaryColor: string
     accentColor: string
-    ownerName?: string
-    ownerEmail?: string
   }
 }
 
@@ -28,55 +25,55 @@ export type AppSession = {
   dashboards?: AppDashboardMembership[]
 }
 
-export const SESSION_STORAGE_KEY = "volt_session"
+const SESSION_KEY = "volt_session"
+
+export function storeSession(session: AppSession) {
+  if (typeof window === "undefined") return
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+}
 
 export function getStoredSession(): AppSession | null {
   if (typeof window === "undefined") return null
-
   try {
-    const value = window.localStorage.getItem(SESSION_STORAGE_KEY)
-    return value ? (JSON.parse(value) as AppSession) : null
+    const raw = localStorage.getItem(SESSION_KEY)
+    return raw ? JSON.parse(raw) : null
   } catch {
     return null
   }
 }
 
-export function storeSession(session: AppSession) {
+export function clearStoredSession() {
   if (typeof window === "undefined") return
-  window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
+  localStorage.removeItem(SESSION_KEY)
 }
 
-export function updateStoredSession(values: Partial<AppSession>) {
-  const current = getStoredSession()
-  if (!current) return
+export const clearSession = clearStoredSession
 
-  storeSession({
-    ...current,
-    ...values,
-  })
+export function isAdmin(role: AppRole | string) {
+  return role === "admin" || role === "business_owner" || role === "creator"
 }
 
-export function clearSession() {
-  if (typeof window === "undefined") return
-  window.localStorage.removeItem(SESSION_STORAGE_KEY)
+export const isAdminLike = isAdmin
+
+export function canAccessTeamPage(_role: AppRole | string) {
+  return true
 }
 
-export function getActiveRole() {
-  return getStoredSession()?.role || null
+export function canAccessAdminPage(role: AppRole | string) {
+  return isAdmin(role)
 }
 
-/**
- * General admin-like access.
- * Use this for things that business owners are allowed to see.
- */
-export function isAdminLike(role?: string | null) {
-  return role === "creator" || role === "business_owner" || role === "admin"
+export function canAccessProjectsPage(_role: AppRole | string) {
+  return true
 }
 
-/**
- * Team page access.
- * This is strict because you said only admins must see the Team page.
- */
-export function canAccessTeamPage(role?: string | null) {
-  return role === "creator" || role === "business_owner" || role === "admin"
+export function getRoleLabel(role: AppRole | string) {
+  const labels: Record<string, string> = {
+    creator: "Creator",
+    business_owner: "Business Owner",
+    admin: "Admin",
+    manager: "Manager",
+    employee: "Employee",
+  }
+  return labels[role] || role
 }

@@ -162,7 +162,10 @@ If it's a general question, give practical Volt-related advice.`
 }
 
 // ── Fallback rule-based answers (when Groq is unavailable) ──
-function fallbackAnswer(intent: string, data: any, params: Record<string, string>): string {
+function fallbackAnswer(intent: string, data: any, params: Record<string, string>, message = "", userName = "there"): string {
+  const greetingPattern = /^\s*(hi+|hello+|hey+|yo|sup|howzit|hiya|good\s?(morning|afternoon|evening)|how(\s?'?s| is| are)\s?(it going|you|things|everything)?\??)\s*[!.?]*\s*$/i
+  const thanksPattern = /^\s*(thanks|thank you|thx|cheers|ty|nice|cool|awesome|great|sweet|perfect)\s*[!.?]*\s*$/i
+
   switch (intent) {
     case "help":
       return `Hey! I'm **Volty** ⚡\n\n**I understand natural language** — just talk to me normally, typos and all!\n\n**Read your data:**\n- "show my tasks" / "any overdue stuff?"\n- "what tickets do i have"\n- "what should i do today"\n\n**Take action:**\n- "make a ticket called Server Down urgent"\n- "create task called Update Docs for Kaedyn"\n- "complete the weekly report task"\n\n**Admins:**\n- "how is the company doing"\n- "team overview" / "list all users"`
@@ -190,8 +193,15 @@ function fallbackAnswer(intent: string, data: any, params: Record<string, string
       return data?.error ? data.error : data ? `✅ **Done!** "${data.title}" marked complete. XP awarded ⚡` : `Couldn't find a task matching "${params.title}".`
     case "all_users":
       return data?.length ? `**Team (${data.length}):**\n\n${data.map((u: any) => `- **${u.full_name}** — ${u.role}`).join("\n")}` : "No team members found."
+    case "general":
     default:
-      return "I'm not sure how to help with that. Type **help** to see what I can do."
+      if (greetingPattern.test(message)) {
+        return `Hey ${userName}! ⚡ I'm **Volty**, your Volt assistant.\n\nAsk me things like:\n- "what's on my plate today?"\n- "show my overdue tasks"\n- "create a ticket called Printer down, urgent"\n- "mark the weekly report task as done"\n\nWhat can I help you with?`
+      }
+      if (thanksPattern.test(message)) {
+        return `Anytime, ${userName}! ⚡ Let me know if there's anything else — tasks, tickets, or your progress, I've got you.`
+      }
+      return `I want to make sure I get this right ⚡ — I can help with things like:\n\n- "show my tasks" / "what's overdue"\n- "create a ticket called [name]"\n- "create a task called [name] for [person]"\n- "mark [task] as done"\n- "what should I focus on today"\n\nTry rephrasing, or type **help** to see everything I can do.`
   }
 }
 
@@ -332,7 +342,7 @@ export async function POST(req: Request) {
     // For write actions — use Groq to confirm naturally, or fallback
     // For read/general — use Groq for a smart natural answer
     const groqAnswer = await generateAnswer(message, intent, data, role, userName, companyName)
-    const answer = groqAnswer || fallbackAnswer(intent, data, params)
+    const answer = groqAnswer || fallbackAnswer(intent, data, params, message, userName)
 
     return NextResponse.json({
       answer,

@@ -18,6 +18,7 @@ import { getStoredSession } from "@/lib/auth"
 import {
   AlertCircle,
   ArrowRight,
+  Bell,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -605,6 +606,7 @@ export default function TicketsPage() {
   const [showOverduePanel, setShowOverduePanel] = useState(false)
   const [listMotion, setListMotion] = useState<"left" | "right" | null>(null)
   const [listMotionKey, setListMotionKey] = useState(0)
+  const [reminderStatus, setReminderStatus] = useState<Record<string, "sending" | "sent" | "error">>({})
 
   const session = typeof window !== "undefined" ? (getStoredSession() as any) : null
   const selectedAssignee = teamMembers.find(
@@ -926,6 +928,48 @@ export default function TicketsPage() {
     }
 
     patchTicketStatus(ticket, status)
+  }
+
+  async function handleSendReminder(ticket: TicketRecord) {
+    const key = getTicketRowKey(ticket)
+    const companyId = getStoredCompanyId()
+    const activeSession = getStoredSession() as any
+
+    if (!companyId) return
+
+    setReminderStatus((prev) => ({ ...prev, [key]: "sending" }))
+
+    try {
+      const response = await fetch(`/api/tickets/remind?companyId=${encodeURIComponent(String(companyId))}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-company-id": String(companyId),
+        },
+        body: JSON.stringify({
+          dbId: ticket.dbId ?? ticket.id,
+          fromUserId: activeSession?.userId || null,
+          fromName: activeSession?.fullName || "A teammate",
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || "Could not send reminder.")
+      }
+
+      setReminderStatus((prev) => ({ ...prev, [key]: "sent" }))
+    } catch (err) {
+      setReminderStatus((prev) => ({ ...prev, [key]: "error" }))
+    } finally {
+      setTimeout(() => {
+        setReminderStatus((prev) => {
+          const next = { ...prev }
+          delete next[key]
+          return next
+        })
+      }, 3000)
+    }
   }
 
   function rewardTicket(ticket: TicketRecord) {
@@ -1969,6 +2013,12 @@ export default function TicketsPage() {
               const key = getTicketRowKey(ticket)
               const canStart = ticket.status === "open"
               const canResolve = ticket.status === "in-progress"
+              const isOwnTicket =
+                session?.userId &&
+                String(ticket.createdByUserId || ticket.reporterUserId || "") === String(session.userId)
+              const hasAssignee = Boolean(ticket.assigneeUserId || ticket.assignedToUserId)
+              const canRemind = isOwnTicket && hasAssignee && !isTicketCompleted(ticket)
+              const reminderState = reminderStatus[key]
 
               return (
                 <div
@@ -2087,6 +2137,43 @@ export default function TicketsPage() {
                         >
                           Close
                           <CheckCircle2 className="ml-1.5 h-3.5 w-3.5 transition group-hover:scale-110" />
+                        </Button>
+                      )}
+
+                      {canRemind && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={reminderState === "sending"}
+                          onClick={() => handleSendReminder(ticket)}
+                          className={cn(
+                            actionButtonMotion,
+                            "h-8 rounded-lg border-primary/25 bg-primary/10 px-3 text-xs text-primary hover:bg-primary/15 hover:shadow-primary/10",
+                            reminderState === "sent" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
+                            reminderState === "error" && "border-destructive/30 bg-destructive/10 text-destructive",
+                          )}
+                        >
+                          {reminderState === "sending" ? (
+                            <>
+                              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                              Sending...
+                            </>
+                          ) : reminderState === "sent" ? (
+                            <>
+                              <Check className="mr-1.5 h-3.5 w-3.5" />
+                              Reminded
+                            </>
+                          ) : reminderState === "error" ? (
+                            <>
+                              <AlertCircle className="mr-1.5 h-3.5 w-3.5" />
+                              Failed
+                            </>
+                          ) : (
+                            <>
+                              <Bell className="mr-1.5 h-3.5 w-3.5" />
+                              Remind {getTicketAssigneeName(ticket).split(" ")[0]}
+                            </>
+                          )}
                         </Button>
                       )}
 

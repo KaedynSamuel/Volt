@@ -1,4 +1,5 @@
 import sql from "mssql"
+import nodemailer from "nodemailer"
 
 export type VoltEmailNotification = {
   to?: string | null
@@ -10,7 +11,7 @@ export type VoltEmailNotification = {
 export type VoltInAppNotification = {
   companyId: number
   userId: number
-  type: "task_created" | "task_assigned" | "ticket_created" | "ticket_assigned" | "ticket_closed" | "ticket_resolved"
+  type: "task_created" | "task_assigned" | "ticket_created" | "ticket_assigned" | "ticket_closed" | "ticket_resolved" | "ticket_reminder"
   title: string
   message: string
   relatedId?: string | null
@@ -29,6 +30,39 @@ function buildVoltEmailBody(notification: VoltEmailNotification) {
     .join("\n")
 }
 
+let cachedTransporter: ReturnType<typeof nodemailer.createTransport> | null = null
+
+/**
+ * Builds (and caches) an SMTP transporter from environment variables.
+ *
+ * Works with:
+ *  - Microsoft 365 / Outlook: smtp.office365.com : 587 (STARTTLS)
+ *  - Google Workspace / Gmail: smtp.gmail.com : 587 (STARTTLS, use an App Password)
+ *  - Azure Communication Services SMTP relay, SendGrid, Mailgun, etc.
+ *
+ * Set these in your hosting environment (e.g. Azure App Service > Configuration):
+ *   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, VOLT_EMAIL_FROM
+ *   SMTP_SECURE=true if using port 465 (implicit TLS)
+ */
+function getSmtpTransporter() {
+  if (cachedTransporter) return cachedTransporter
+  if (!process.env.SMTP_HOST) return null
+
+  cachedTransporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: process.env.SMTP_USER
+      ? {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASSWORD,
+        }
+      : undefined,
+  })
+
+  return cachedTransporter
+}
+
 export async function sendVoltEmailNotification(notification: VoltEmailNotification) {
   if (!notification.to) return { skipped: true, reason: "Missing recipient email" }
 
@@ -39,8 +73,21 @@ export async function sendVoltEmailNotification(notification: VoltEmailNotificat
     text: buildVoltEmailBody(notification),
   }
 
-  // Hook point for your real email provider. Set VOLT_EMAIL_WEBHOOK_URL to an internal
-  // API/automation endpoint when you are ready to send real emails from Volt.
+  // Option 1: SMTP (recommended) — Microsoft 365, Google Workspace, Azure Communication
+  // Services, or any other SMTP relay. Configure SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASSWORD.
+  const transporter = getSmtpTransporter()
+  if (transporter) {
+    try {
+      await transporter.sendMail(payload)
+      return { sent: true, provider: "smtp" }
+    } catch (error) {
+      console.error("Volt SMTP email send failed:", error)
+      throw new Error("Volt email could not be sent via SMTP. Check SMTP_* configuration.")
+    }
+  }
+
+  // Option 2: Custom webhook/automation endpoint. Set VOLT_EMAIL_WEBHOOK_URL to an
+  // internal API/automation endpoint when you are ready to send real emails from Volt.
   if (process.env.VOLT_EMAIL_WEBHOOK_URL) {
     const response = await fetch(process.env.VOLT_EMAIL_WEBHOOK_URL, {
       method: "POST",
@@ -57,10 +104,11 @@ export async function sendVoltEmailNotification(notification: VoltEmailNotificat
       throw new Error(`Volt email webhook failed with status ${response.status}`)
     }
 
-    return { sent: true }
+    return { sent: true, provider: "webhook" }
   }
 
-  console.info("Volt email notification ready:", payload)
+  // Option 3: No email provider configured — log so the message isn't silently lost.
+  console.info("Volt email notification ready (no SMTP_HOST or VOLT_EMAIL_WEBHOOK_URL configured):", payload)
   return { queued: true, provider: "console" }
 }
 

@@ -480,11 +480,13 @@ function WorkspaceTabButton({
             {tab.description}
           </span>
         </span>
-        <span
-          className={`rounded-full px-2 py-1 text-[10px] font-black ${active || highlighted ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}
-        >
-          {count}
-        </span>
+        {(tab.value !== "chat" || count > 0) && (
+          <span
+            className={`rounded-full px-2 py-1 text-[10px] font-black ${active || highlighted ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"} ${tab.value === "chat" && count > 0 ? "bg-accent/20 text-accent" : ""}`}
+          >
+            {count}
+          </span>
+        )}
       </span>
     </button>
   );
@@ -759,6 +761,24 @@ export default function TeamPage() {
     ? `volt-team-chat-wallpaper-${companyId || "global"}-${selectedTeam.id}`
     : "";
 
+  const [lastReadAt, setLastReadAt] = useState<Record<number, number>>({});
+
+  const getLastReadStorageKey = useCallback(
+    (teamId: number) =>
+      `volt-team-chat-lastread-${companyId || "global"}-${teamId}-${session?.userId || "user"}`,
+    [companyId, session?.userId],
+  );
+
+  const unreadCount = useMemo(() => {
+    if (!selectedTeam || !session) return 0
+    const lastRead = lastReadAt[selectedTeam.id] || 0
+    return messages.filter(
+      (message) =>
+        message.senderUserId !== session.userId &&
+        new Date(message.createdAt).getTime() > lastRead,
+    ).length
+  }, [messages, selectedTeam, session, lastReadAt])
+
   const wallpaperTouchedRef = useRef(false);
   const seenMessageIdsRef = useRef<Set<number>>(new Set());
   const selectedTeamRef = useRef<number | null>(null);
@@ -1000,6 +1020,38 @@ export default function TeamPage() {
     return () =>
       window.removeEventListener("volt-team-typing", handleRemoteTyping);
   }, [selectedTeam?.id, session?.userId]);
+
+  // Load the last-read timestamp for the selected team's chat from local storage
+  useEffect(() => {
+    if (!selectedTeam || typeof window === "undefined") return
+    try {
+      const stored = window.localStorage.getItem(getLastReadStorageKey(selectedTeam.id))
+      const value = stored ? Number(stored) : 0
+      setLastReadAt((prev) => ({ ...prev, [selectedTeam.id]: value || 0 }))
+    } catch {
+      // ignore storage errors
+    }
+  }, [selectedTeam?.id, getLastReadStorageKey])
+
+  // Mark the chat as read whenever the chat tab is active and new messages arrive
+  useEffect(() => {
+    if (!selectedTeam || activeWorkspaceTab !== "chat" || typeof window === "undefined") return
+    if (messages.length === 0) return
+
+    const newestTimestamp = messages.reduce(
+      (latest, message) => Math.max(latest, new Date(message.createdAt).getTime()),
+      0,
+    )
+
+    if (newestTimestamp <= (lastReadAt[selectedTeam.id] || 0)) return
+
+    try {
+      window.localStorage.setItem(getLastReadStorageKey(selectedTeam.id), String(newestTimestamp))
+    } catch {
+      // ignore storage errors
+    }
+    setLastReadAt((prev) => ({ ...prev, [selectedTeam.id]: newestTimestamp }))
+  }, [selectedTeam?.id, activeWorkspaceTab, messages, lastReadAt, getLastReadStorageKey])
 
   useEffect(() => {
     if (!session) {
@@ -1701,7 +1753,7 @@ export default function TeamPage() {
                       active={activeWorkspaceTab === tab.value}
                       highlighted={highlightedWorkspaceTab === tab.value}
                       count={
-                        tab.value === "chat" ? messages.length : files.length
+                        tab.value === "chat" ? unreadCount : files.length
                       }
                       onClick={() => setActiveWorkspaceTab(tab.value)}
                     />

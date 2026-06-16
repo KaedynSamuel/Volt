@@ -5,19 +5,34 @@ import {
   formatMembership,
   getDbPool,
   getErrorMessage,
-  verifyPassword,
 } from "@/lib/server/volt-schema"
 
+/**
+ * POST /api/auth/sso-login
+ *
+ * Body: { email: string }
+ *
+ * Called by the login page after a successful "Continue with Microsoft" or
+ * "Continue with Google" sign-in. The OAuth provider has already verified
+ * that the person owns this email address — this endpoint simply looks up
+ * the matching Volt account(s) (the same AppUsers table used for password
+ * login) and, if found, returns the normal Volt session payload.
+ *
+ * If no Volt account exists for the email yet, this returns 404 so the
+ * client can show a friendly "ask your admin to add you" message. Volt
+ * accounts are still created by a company admin (Team page / Setup), but
+ * once created with the person's real Microsoft/Google/work email, that
+ * person can sign in instantly with this flow — no password needed.
+ */
 export async function POST(request: Request) {
   try {
     await ensureVoltSchema()
 
-    const body = await request.json()
+    const body = await request.json().catch(() => ({}))
     const email = String(body.email || "").trim().toLowerCase()
-    const password = String(body.password || "").trim()
 
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 })
     }
 
     const pool = await getDbPool()
@@ -33,9 +48,6 @@ export async function POST(request: Request) {
           u.email,
           u.role,
           u.status,
-          u.password_hash,
-          u.password_salt,
-          u.auth_method,
           c.name AS company_name,
           c.dashboard_name,
           c.logo_url,
@@ -59,31 +71,13 @@ export async function POST(request: Request) {
       `)
 
     if (result.recordset.length === 0) {
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
-    }
-
-    // If the account is SSO-only, block password login with a helpful message
-    const firstRow = result.recordset[0]
-    const authMethod = firstRow.auth_method || "password"
-    if (authMethod === "microsoft") {
       return NextResponse.json(
-        { error: "This account uses Microsoft login. Please click \"Continue with Microsoft\" instead." },
-        { status: 401 }
+        {
+          error: "no_account",
+          message: `No Volt account is set up for ${email} yet. Ask your company admin to add this email address on the Team page, then try again.`,
+        },
+        { status: 404 },
       )
-    }
-    if (authMethod === "google") {
-      return NextResponse.json(
-        { error: "This account uses Google login. Please click \"Continue with Google\" instead." },
-        { status: 401 }
-      )
-    }
-
-    const matchingUser = result.recordset.find((row: any) =>
-      verifyPassword(password, row.password_hash, row.password_salt)
-    )
-
-    if (!matchingUser) {
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
     }
 
     await pool
@@ -96,7 +90,7 @@ export async function POST(request: Request) {
       `)
 
     const memberships = result.recordset.map(formatMembership)
-    const first = formatMembership(matchingUser)
+    const first = memberships[0]
 
     return NextResponse.json({
       session: {
@@ -111,10 +105,10 @@ export async function POST(request: Request) {
       dashboards: memberships,
     })
   } catch (error) {
-    console.error("Login failed:", error)
+    console.error("SSO login failed:", error)
     return NextResponse.json(
       { error: "Login failed", details: getErrorMessage(error) },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

@@ -144,6 +144,9 @@ export async function ensureVoltSchema() {
     IF COL_LENGTH('dbo.AppUsers', 'last_login_at') IS NULL
       ALTER TABLE dbo.AppUsers ADD last_login_at DATETIME2 NULL;
 
+    IF COL_LENGTH('dbo.AppUsers', 'auth_method') IS NULL
+      ALTER TABLE dbo.AppUsers ADD auth_method NVARCHAR(50) NOT NULL CONSTRAINT DF_AppUsers_auth_method DEFAULT 'password';
+
     IF OBJECT_ID('dbo.AccessCodes', 'U') IS NULL
     BEGIN
       CREATE TABLE dbo.AccessCodes (

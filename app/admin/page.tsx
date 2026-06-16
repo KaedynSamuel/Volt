@@ -46,6 +46,7 @@ const emptyUserForm = {
   email: "",
   password: "",
   role: "employee" as AdminRole,
+  authMethod: "password" as "password" | "microsoft" | "google" | "any",
 }
 
 const emptyTeamForm = {
@@ -373,6 +374,11 @@ export default function AdminHubPage() {
                   <span className="block truncate text-sm font-medium">{user.fullName}</span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {user.email} • {roleLabel(user.role)}
+                    {user.authMethod && user.authMethod !== "password" && (
+                      <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                        {user.authMethod === "microsoft" ? "🪟 Microsoft" : user.authMethod === "google" ? "🔵 Google" : "🔓 Any"}
+                      </span>
+                    )}
                   </span>
                 </span>
               </span>
@@ -453,7 +459,36 @@ export default function AdminHubPage() {
 
             <input className="w-full rounded-xl border border-border bg-background/80 px-3 py-1.5 text-sm outline-none focus:border-primary" placeholder="Full name" value={userForm.fullName} onChange={(e) => setUserForm((p) => ({ ...p, fullName: e.target.value }))} />
             <input className="w-full rounded-xl border border-border bg-background/80 px-3 py-1.5 text-sm outline-none focus:border-primary" placeholder="Email" type="email" value={userForm.email} onChange={(e) => setUserForm((p) => ({ ...p, email: e.target.value }))} />
-            <input className="w-full rounded-xl border border-border bg-background/80 px-3 py-1.5 text-sm outline-none focus:border-primary" placeholder="Temporary password" type="password" value={userForm.password} onChange={(e) => setUserForm((p) => ({ ...p, password: e.target.value }))} />
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Login Method</label>
+              <select
+                className="w-full rounded-xl border border-border bg-background/80 px-3 py-1.5 text-sm outline-none focus:border-primary"
+                value={userForm.authMethod}
+                onChange={(e) => setUserForm((p) => ({ ...p, authMethod: e.target.value as typeof p.authMethod, password: "" }))}
+              >
+                <option value="password">📧 Email + Password</option>
+                <option value="microsoft">🪟 Microsoft only</option>
+                <option value="google">🔵 Google only</option>
+                <option value="any">🔓 Any method (Microsoft, Google, or Password)</option>
+              </select>
+              <p className="text-[11px] text-muted-foreground px-1">
+                {userForm.authMethod === "password" && "Person will log in with their email and the password you set below."}
+                {userForm.authMethod === "microsoft" && "Person must log in with their Microsoft account. No password needed."}
+                {userForm.authMethod === "google" && "Person must log in with their Google account. No password needed."}
+                {userForm.authMethod === "any" && "Person can use Microsoft, Google, or email + password."}
+              </p>
+            </div>
+
+            {(userForm.authMethod === "password" || userForm.authMethod === "any") && (
+              <input
+                className="w-full rounded-xl border border-border bg-background/80 px-3 py-1.5 text-sm outline-none focus:border-primary"
+                placeholder={userForm.authMethod === "any" ? "Temporary password (optional)" : "Temporary password"}
+                type="password"
+                value={userForm.password}
+                onChange={(e) => setUserForm((p) => ({ ...p, password: e.target.value }))}
+              />
+            )}
             <select className="w-full rounded-xl border border-border bg-background/80 px-3 py-1.5 text-sm outline-none focus:border-primary" value={userForm.role} onChange={(e) => setUserForm((p) => ({ ...p, role: e.target.value as AdminRole }))}>
               <option value="employee">Employee</option>
               <option value="admin">Admin</option>

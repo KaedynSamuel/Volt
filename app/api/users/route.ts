@@ -59,6 +59,7 @@ function formatUser(row: any) {
     email: row.email,
     role: row.role,
     status: row.status,
+    authMethod: row.auth_method || "password",
     createdAt: row.created_at,
   }
 }
@@ -134,6 +135,7 @@ export async function GET(request: Request) {
           email,
           role,
           status,
+          auth_method,
           created_at
         FROM dbo.AppUsers
         WHERE company_id = @company_id
@@ -172,6 +174,9 @@ export async function POST(request: Request) {
     const email = String(body.email || "").trim().toLowerCase()
     const password = String(body.password || "").trim()
     const role = normalizeRole(body.role)
+    const authMethod = ["password", "microsoft", "google", "any"].includes(body.authMethod)
+      ? body.authMethod
+      : "password"
 
     const pool = await sql.connect(dbConfig)
 
@@ -181,14 +186,25 @@ export async function POST(request: Request) {
       return permission.response
     }
 
-    if (!fullName || !email || !password) {
+    if (!fullName || !email) {
       return NextResponse.json(
-        { error: "Full name, email, and password are required" },
+        { error: "Full name and email are required" },
         { status: 400 }
       )
     }
 
-    const passwordData = hashPassword(password)
+    // Password is only required for password-based login
+    if (authMethod === "password" && !password) {
+      return NextResponse.json(
+        { error: "A temporary password is required for password-based login" },
+        { status: 400 }
+      )
+    }
+
+    // For SSO-only users, generate a random unusable password so the column stays NOT NULL
+    const passwordData = (authMethod === "password" || authMethod === "any")
+      ? hashPassword(password || randomBytes(32).toString("hex"))
+      : hashPassword(randomBytes(32).toString("hex"))
 
     const result = await pool
       .request()
@@ -198,6 +214,7 @@ export async function POST(request: Request) {
       .input("role", sql.NVarChar, role)
       .input("password_hash", sql.NVarChar, passwordData.hash)
       .input("password_salt", sql.NVarChar, passwordData.salt)
+      .input("auth_method", sql.NVarChar, authMethod)
       .query(`
         INSERT INTO dbo.AppUsers (
           company_id,
@@ -207,6 +224,7 @@ export async function POST(request: Request) {
           status,
           password_hash,
           password_salt,
+          auth_method,
           created_at,
           updated_at
         )
@@ -217,6 +235,7 @@ export async function POST(request: Request) {
           inserted.email,
           inserted.role,
           inserted.status,
+          inserted.auth_method,
           inserted.created_at
         VALUES (
           @company_id,
@@ -226,6 +245,7 @@ export async function POST(request: Request) {
           'active',
           @password_hash,
           @password_salt,
+          @auth_method,
           GETDATE(),
           GETDATE()
         )

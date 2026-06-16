@@ -10,6 +10,7 @@ import {
   CalendarCheck,
   CheckCircle2,
   Clock,
+  Crown,
   Flame,
   Gem,
   Layers3,
@@ -528,6 +529,7 @@ function getBadges(stats: AchievementStats): AchievementBadge[] {
     makeBadge("clean-finisher", "Clean Finisher", "Complete 10 items without missing due dates.", CheckCircle2, "Medium", Math.max(stats.totalCompleted - stats.overdueCompleted, 0), 10, 180),
     makeBadge("reliable-finisher", "Reliable Finisher", "Complete 30 items without missing due dates.", BadgeCheck, "Hard", Math.max(stats.totalCompleted - stats.overdueCompleted, 0), 30, 450),
     makeBadge("domain-surge", "Domain Surge", "Reach 5000 XP in the current year.", Sparkles, "Legendary", stats.totalXp, 5000, 1500),
+    makeBadge("volt-architect", "Volt Architect", "Reach 10,000 total XP — true Volt mastery.", Crown, "Legendary", stats.totalXp, 10000, 2500),
   ]
 }
 
@@ -576,10 +578,38 @@ function BadgeImage({
         />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center rounded-3xl"
-          style={{ background: badge.unlocked ? `${tierColor}12` : "rgba(128,128,128,0.08)" }}
+          className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-3xl"
+          style={{
+            background: badge.id === "volt-architect" && badge.unlocked
+              ? `radial-gradient(circle at 50% 35%, ${tierColor}33 0%, ${tierColor}10 55%, transparent 80%)`
+              : badge.unlocked ? `${tierColor}12` : "rgba(128,128,128,0.08)",
+            border: badge.id === "volt-architect" && badge.unlocked ? `1px solid ${tierColor}55` : undefined,
+            boxShadow: badge.id === "volt-architect" && badge.unlocked ? `0 0 ${px * 0.3}px ${tierColor}40` : undefined,
+          }}
         >
-          <Icon style={{ width: px * 0.5, height: px * 0.5, color: badge.unlocked ? tierColor : "rgba(128,128,128,0.35)" }} />
+          {badge.id === "volt-architect" && badge.unlocked && (
+            <>
+              <div
+                className="absolute -right-2 -top-2 h-1/2 w-1/2 rounded-full opacity-60 blur-xl"
+                style={{ background: tierColor }}
+              />
+              <div
+                className="absolute inset-0 opacity-10"
+                style={{
+                  backgroundImage: `repeating-linear-gradient(45deg, ${tierColor} 0, transparent 1px, transparent 8px)`,
+                }}
+              />
+            </>
+          )}
+          <Icon
+            className="relative"
+            style={{
+              width: px * (badge.id === "volt-architect" ? 0.56 : 0.5),
+              height: px * (badge.id === "volt-architect" ? 0.56 : 0.5),
+              color: badge.unlocked ? tierColor : "rgba(128,128,128,0.35)",
+              filter: badge.id === "volt-architect" && badge.unlocked ? `drop-shadow(0 0 ${px * 0.08}px ${tierColor})` : undefined,
+            }}
+          />
         </div>
       )}
       {!badge.unlocked && (
@@ -621,12 +651,14 @@ export default function AchievementsPage() {
       recentAchievements: [],
       lastUpdatedAt: new Date().toISOString(),
     })
+  const [progressLoaded, setProgressLoaded] = useState(false)
   const [levelUpData, setLevelUpData] = useState<{ level: number; tierName: string; tierColor: string } | null>(null)
   const [tierUpData, setTierUpData] = useState<{ fromTier: string; toTier: string; toColor: string } | null>(null)
   const [showBanner, setShowBanner] = useState(false)
   const [badgeFilter, setBadgeFilter] = useState<"All"|"Easy"|"Medium"|"Hard"|"Legendary">("All")
   const [poppedBadge, setPoppedBadge] = useState<AchievementBadge | null>(null)
   const [achievementsTheme, setAchievementsTheme] = useState<string>("default")
+  const [bannerThemeName, setBannerThemeName] = useState<string | undefined>(undefined)
   const badgeRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const prevLevelRef = React.useRef<number | null>(null)
   const prevTierRef = React.useRef<string | null>(null)
@@ -647,6 +679,7 @@ export default function AchievementsPage() {
 
   const progressStorageKey = getAchievementProgressStorageKey(session)
   const themeStorageKey = `volt-achievements-theme-${session?.companyId || "global"}-${session?.userId || "user"}`
+  const bannerThemeStorageKey = `volt-banner-theme-${session?.companyId || "global"}-${session?.userId || "user"}`
 
   // Achievement page themes — tied to tier names
   const ACHIEVEMENT_THEMES = [
@@ -665,7 +698,14 @@ export default function AchievementsPage() {
     if (!mounted) return
     const stored = localStorage.getItem(themeStorageKey)
     if (stored) setAchievementsTheme(stored)
-  }, [mounted, themeStorageKey])
+    const storedBanner = localStorage.getItem(bannerThemeStorageKey)
+    if (storedBanner) setBannerThemeName(storedBanner)
+  }, [mounted, themeStorageKey, bannerThemeStorageKey])
+
+  function saveBannerTheme(themeName: string) {
+    setBannerThemeName(themeName)
+    localStorage.setItem(bannerThemeStorageKey, themeName)
+  }
 
   function applyAchievementTheme(themeName: string) {
     setAchievementsTheme(themeName)
@@ -687,6 +727,7 @@ export default function AchievementsPage() {
 
     const syncProgress = () => {
       setStoredProgress(readStoredAchievementProgress(progressStorageKey))
+      setProgressLoaded(true)
     }
 
     syncProgress()
@@ -707,7 +748,11 @@ export default function AchievementsPage() {
   // so the animation never fires on page load, only on genuine XP gains
   const prevXpRef = React.useRef<number | null>(null)
   useEffect(() => {
-    if (!mounted) return
+    // Wait until the real saved progress has loaded — otherwise the
+    // placeholder totalXp: 0 state gets compared against the stored
+    // "last seen" values and incorrectly resets them, which made the
+    // level-up animation fire on every visit to this page.
+    if (!mounted || !progressLoaded) return
 
     const rank = getAchievementRank(storedProgress.totalXp)
     const currentLevel = rank.globalLevel
@@ -956,6 +1001,8 @@ export default function AchievementsPage() {
           totalXp={stats.totalXp}
           xpProgress={Math.round(((stats.totalXp % 100) / 100) * 100)}
           selectedBadgeIds={selectedBadgeIds}
+          initialThemeName={bannerThemeName}
+          onSaveTheme={saveBannerTheme}
           onClose={() => setShowBanner(false)}
           onShareTeam={() => {
             setShowBanner(false)
@@ -1283,19 +1330,14 @@ export default function AchievementsPage() {
                         }`}
                         style={{ ["--tc" as string]: tier.color } as React.CSSProperties}
                       >
-                        {/* Animated bg glow */}
+                        {/* Static bg glow (animation removed) */}
                         {(active || unlocked) && (
-                          <div className="absolute inset-0 rounded-2xl opacity-15 blur-lg pointer-events-none" style={{ backgroundColor: tier.color, animation: active ? "pulseRing 2s ease-in-out infinite" : undefined }} />
+                          <div className="absolute inset-0 rounded-2xl opacity-15 blur-lg pointer-events-none" style={{ backgroundColor: tier.color }} />
                         )}
 
-                        {/* Particle dots for special tiers */}
-                        {ts.particles && active && [0,1,2].map(p => (
-                          <div key={p} className="absolute rounded-full pointer-events-none" style={{ width:3,height:3,background:tier.color,top:`${20+p*25}%`,right:`${10+p*15}%`,animation:`sparkFloat ${1.5+p*0.4}s ease-in-out infinite`,animationDelay:`${p*0.3}s` }} />
-                        ))}
-
                         <div className="relative">
-                          {/* Animated tier icon */}
-                          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl text-lg font-black" style={{ backgroundColor: `${tier.color}18`, color: tier.color, animation: active ? ts.anim : undefined }}>
+                          {/* Tier icon (animation removed) */}
+                          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl text-lg font-black" style={{ backgroundColor: `${tier.color}18`, color: tier.color }}>
                             {unlocked ? ts.icon : <Lock className="h-4 w-4" />}
                           </div>
 

@@ -491,3 +491,15 @@
 .volt-chat-input:focus {
   background: hsl(var(--background) / 0.96) !important;
 }
+
+/* Volt Docs — placeholder text for the empty contentEditable area */
+.volt-docs-editor[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+/* Volt Sheets — zebra striping for readability */
+.volt-sheet-row:nth-child(even) td {
+  background: hsl(var(--muted) / 0.25);
+}

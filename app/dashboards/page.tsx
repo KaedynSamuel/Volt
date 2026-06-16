@@ -45,7 +45,7 @@ import {
   getStoredSession,
   storeSession,
 } from "@/lib/auth"
-import { clearStoredCompanyId, storeCompany } from "@/lib/tenant"
+import { clearStoredCompanyId, getReadableForeground, storeCompany } from "@/lib/tenant"
 
 type NewDashboardForm = {
   companyName: string
@@ -90,6 +90,13 @@ function applyVoltHubTheme() {
   root.style.setProperty("--accent", VOLT_ACCENT)
   root.style.setProperty("--chart-3", VOLT_ACCENT)
   root.style.setProperty("--gradient-end", VOLT_ACCENT)
+
+  const primaryForeground = getReadableForeground(VOLT_PRIMARY)
+  const accentForeground = getReadableForeground(VOLT_ACCENT)
+  root.style.setProperty("--primary-foreground", primaryForeground)
+  root.style.setProperty("--sidebar-primary-foreground", primaryForeground)
+  root.style.setProperty("--accent-foreground", accentForeground)
+  root.style.setProperty("--sidebar-accent-foreground", accentForeground)
 }
 
 const emptyForm: NewDashboardForm = {
