@@ -8,23 +8,22 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-permissions:
-  id-token: write
-  contents: write
-
 jobs:
 
   deploy-azure:
     name: Deploy to Azure App Service
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22.x'
           cache: 'npm'
 
       - name: Install dependencies
@@ -35,16 +34,6 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: Zip for deployment
-        run: |
-          zip -r deploy.zip . \
-            --exclude "*.git*" \
-            --exclude "electron/*" \
-            --exclude "assets/*" \
-            --exclude "dist/*" \
-            --exclude "*.md" \
-            --exclude "node_modules/.cache/*"
-
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -52,11 +41,12 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7C026B593A6740558541E52CE221B92F }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1847AEA6B2A943D3A331367F73604377 }}
 
-      - name: Deploy to Azure App Service
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: VoltDox
-          package: deploy.zip
+          app-name: 'VoltDox'
+          slot-name: 'Production'
+          package: .
 
   build-electron:
     name: Build Windows Desktop App
