@@ -8,6 +8,10 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+permissions:
+  id-token: write
+  contents: write
+
 jobs:
 
   deploy-azure:
@@ -57,6 +61,8 @@ jobs:
   build-electron:
     name: Build Windows Desktop App
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
